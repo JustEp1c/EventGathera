@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EventGathera.Api/EventGathera.Api.csproj" />
+  </Folder>
+</Solution>
