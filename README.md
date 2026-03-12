@@ -44,7 +44,7 @@ dotnet restore
 4. Запустите приложение:
 
 ```bash
-dotnet run
+dotnet run --project .\src\EventGathera.Api\
 ```
 
 После запуска в консоли будет отображён адрес приложения:
