@@ -1,5 +1,6 @@
 ﻿using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
+using System.Reflection;
 
 namespace EventGathera.Api.Extensions;
 
@@ -18,6 +19,20 @@ public static class RegisterServicesExtension
     {
         services.AddScoped<IEventService, EventService>();
         services.AddSingleton<EventStorage>();
+
+        return services;
+    }
+
+    public static IServiceCollection RegisterPresentation(this IServiceCollection services)
+    {
+        services.AddControllers();
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(options =>
+        {
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            options.IncludeXmlComments(xmlPath);
+        });
 
         return services;
     }
