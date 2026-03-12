@@ -32,12 +32,12 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <param name="request">DTO для обновления события</param>
-    void UpdateEvent(int id, EventRequest request);
+    bool UpdateEvent(int id, EventRequest request);
 
     /// <summary>
     /// Удалить событие
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
-    void DeleteEvent(int id);
+    bool DeleteEvent(int id);
 
 }

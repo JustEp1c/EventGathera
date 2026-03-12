@@ -45,25 +45,37 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public void UpdateEvent(int id, EventRequest request)
+    public bool UpdateEvent(int id, EventRequest request)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id)
-            ?? throw new InvalidOperationException($"Событие с id = {id} не найдено");
+        var foundEvent = _storage.Events.Find(e => e.Id == id);
+
+        if (foundEvent is null)
+        {
+            return false;
+        }
 
         foundEvent.Title = request.Title;
         foundEvent.Description = request.Description;
         foundEvent.StartAt = request.StartAt;
         foundEvent.EndAt = request.EndAt;
+
+        return true;
     }
 
 
     /// <inheritdoc/>
-    public void DeleteEvent(int id)
+    public bool DeleteEvent(int id)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id)
-           ?? throw new InvalidOperationException($"Событие с id = {id} не найдено");
+        var foundEvent = _storage.Events.Find(e => e.Id == id);
+
+        if (foundEvent is null)
+        {
+            return false;
+        }
 
         _storage.Events.Remove(foundEvent);
+
+        return true;
     }
 
 }

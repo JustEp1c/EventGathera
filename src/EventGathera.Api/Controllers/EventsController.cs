@@ -38,9 +38,9 @@ namespace EventGathera.Api.Controllers
         {
             var foundEvent = _eventService.GetEventById(id);
 
-            if (foundEvent == null)
+            if (foundEvent is null)
             {
-                return NotFound(foundEvent);
+                return NotFound($"Событие с {id} не найдено");
             }
 
             return foundEvent;
@@ -57,6 +57,43 @@ namespace EventGathera.Api.Controllers
             _eventService.CreateEvent(request);
 
             return CreatedAtAction(nameof(CreateEvent), new { request.Title, request.Description }, request);
+        }
+
+        /// <summary>
+        /// Обновить событие
+        /// </summary>
+        /// <param name="id">Уникальный идентификатор</param>
+        /// <param name="request">DTO обновленного события</param>
+        /// <returns>204, если событие обновлено</returns>
+        [HttpPut("{id}")]
+        public IActionResult UpdateEvent(int id, [FromBody] EventRequest request)
+        {
+            var updated = _eventService.UpdateEvent(id, request);
+
+            if (!updated)
+            {
+                return NotFound($"Событие с {id} не найдено");
+            }
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Удалить событие
+        /// </summary>
+        /// <param name="id">Уникальный идентификатор</param>
+        /// <returns>204, если событие удалено</returns>
+        [HttpDelete("{id}")]
+        public IActionResult DeleteEvent(int id)
+        {
+            var deleted = _eventService.DeleteEvent(id);
+
+            if (!deleted)
+            {
+                return NotFound($"Событие с {id} не найдено");
+            }
+
+            return NoContent();
         }
     }
 }
