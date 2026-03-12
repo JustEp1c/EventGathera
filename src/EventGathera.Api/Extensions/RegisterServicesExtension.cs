@@ -17,6 +17,7 @@ public static class RegisterServicesExtension
     public static IServiceCollection RegisterServices(this IServiceCollection services)
     {
         services.AddScoped<IEventService, EventService>();
+        services.AddSingleton<EventStorage>();
 
         return services;
     }
