@@ -8,23 +8,19 @@ namespace EventGathera.Api.Services.Implementations;
 /// <inheritdoc/>
 public class EventService : IEventService
 {
-    private readonly EventStorage _storage;
-
-    public EventService(EventStorage storage)
-    {
-        _storage = storage;
-    }
+    private List<Event> _events = [];
 
     /// <inheritdoc/>
     public List<Event> GetAllEvents()
     {
-        return _storage.Events;
+        return _events;
     }
 
     /// <inheritdoc/>
-    public Event? GetEventById(int id)
+    public Event GetEventById(int id)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id);
+        var foundEvent = _events.Find(e => e.Id == id)
+            ?? throw new InvalidOperationException($"Событие с id = {id} не найдено");
 
         return foundEvent;
     }
@@ -34,20 +30,20 @@ public class EventService : IEventService
     {
         var newEvent = new Event
         {
-            Id = _storage.Events.Count == 0 ? 1 : _storage.Events.Max(e => e.Id) + 1,
+            Id = _events.Count == 0 ? 1 : _events.Max(e => e.Id) + 1,
             Title = request.Title,
             Description = request.Description,
             StartAt = request.StartAt,
             EndAt = request.EndAt
         };
 
-        _storage.Events.Add(newEvent);
+        _events.Add(newEvent);
     }
 
     /// <inheritdoc/>
     public void UpdateEvent(int id, EventRequest request)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id)
+        var foundEvent = _events.Find(e => e.Id == id)
             ?? throw new InvalidOperationException($"Событие с id = {id} не найдено");
 
         foundEvent.Title = request.Title;
@@ -60,10 +56,10 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public void DeleteEvent(int id)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id)
+        var foundEvent = _events.Find(e => e.Id == id)
            ?? throw new InvalidOperationException($"Событие с id = {id} не найдено");
 
-        _storage.Events.Remove(foundEvent);
+        _events.Remove(foundEvent);
     }
 
 }

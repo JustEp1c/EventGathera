@@ -19,7 +19,7 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <returns>Событие</returns>
-    Event? GetEventById(int id);
+    Event GetEventById(int id);
 
     /// <summary>
     /// Создать событие
