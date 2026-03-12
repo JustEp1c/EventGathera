@@ -6,7 +6,7 @@ namespace EventGathera.Api.DTO.Requests;
 /// <summary>
 /// DTO для создания/обновления события
 /// </summary>
-public record EventRequest
+public record EventRequest : IValidatableObject
 {
     /// <summary>
     /// Название
@@ -33,4 +33,19 @@ public record EventRequest
     [Required(ErrorMessage = "Время окончания события обязательно для заполнения")]
     [Range(typeof(DateTime), "2020-01-01", "2050-12-31", ErrorMessage = "Некорректная дата окончания события")]
     public required DateTime EndAt { get; init; }
+
+    /// <summary>
+    /// Проверка временного периода на корректность
+    /// </summary>
+    /// <param name="validationContext"></param>
+    /// <returns></returns>
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (StartAt >= EndAt)
+        {
+            yield return new ValidationResult(
+                "Время начала события должно быть меньше времени окончания",
+                [nameof(StartAt), nameof(EndAt)]);
+        }
+    }
 }
