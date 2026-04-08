@@ -19,25 +19,33 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public PaginatedResult<Event> GetAllEvents(EventQueryParams queryParams)
     {
-        var events = _storage.Events;
+        IEnumerable<Event> events = _storage.Events;
 
-        if (queryParams.Title != null && queryParams.From != null && queryParams.To != null)
+        if (!string.IsNullOrWhiteSpace(queryParams.Title))
         {
-            events = events
-                .Where(e => e.Title.Contains(queryParams.Title, StringComparison.OrdinalIgnoreCase) &&
-                    e.StartAt >= queryParams.From &&
-                    e.EndAt <= queryParams.To)
-                .ToList();
+            events = events.Where(e => e.Title.Contains(queryParams.Title, StringComparison.OrdinalIgnoreCase));
         }
 
-        var eventsOnPage = events
+        if (queryParams.From.HasValue)
+        {
+            events = events.Where(e => e.StartAt >= queryParams.From);
+        }
+
+        if (queryParams.To.HasValue)
+        {
+            events = events.Where(e => e.EndAt <= queryParams.To);
+        }
+
+        var eventList = events.ToList();
+
+        var eventsOnPage = eventList
             .Skip((queryParams.Page - 1) * queryParams.PageSize)
             .Take(queryParams.PageSize)
             .ToList();
 
         var paginatedResult = new PaginatedResult<Event>
         {
-            TotalItems = events.Count,
+            TotalItems = eventList.Count,
             Items = eventsOnPage,
             CurrrentPage = queryParams.Page,
             ItemsOnCurrrentPage = eventsOnPage.Count
