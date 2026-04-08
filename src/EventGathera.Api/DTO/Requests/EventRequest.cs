@@ -45,7 +45,7 @@ public record EventRequest : IValidatableObject
         {
             yield return new ValidationResult(
                 "Время начала события должно быть меньше времени окончания",
-                [nameof(StartAt), nameof(EndAt)]);
+                [nameof(EndAt)]);
         }
     }
 }

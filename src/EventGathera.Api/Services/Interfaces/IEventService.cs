@@ -19,25 +19,26 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <returns>Событие</returns>
-    Event? GetEventById(int id);
+    Event GetEventById(int id);
 
     /// <summary>
     /// Создать событие
     /// </summary>
     /// <param name="request">DTO для создания события</param>
-    void CreateEvent(EventRequest request);
+    /// <returns>Созданное событие</returns>
+    Event CreateEvent(EventRequest request);
 
     /// <summary>
     /// Обновить событие целиком
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <param name="request">DTO для обновления события</param>
-    bool UpdateEvent(int id, EventRequest request);
+    void UpdateEvent(int id, EventRequest request);
 
     /// <summary>
     /// Удалить событие
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
-    bool DeleteEvent(int id);
+    void DeleteEvent(int id);
 
 }

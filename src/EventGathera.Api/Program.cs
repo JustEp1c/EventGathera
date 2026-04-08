@@ -1,5 +1,5 @@
 using EventGathera.Api.Extensions;
-using System.Reflection;
+using EventGathera.Api.Extensions.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +7,8 @@ builder.Services.RegisterPresentation();
 builder.Services.RegisterServices();
 
 var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
