@@ -1,5 +1,6 @@
 ﻿using EventGathera.Api.Domain;
 using EventGathera.Api.DTO.Requests;
+using EventGathera.Api.DTO.Responses;
 using EventGathera.Api.Services.Interfaces;
 
 namespace EventGathera.Api.Services.Implementations;
@@ -16,19 +17,33 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public List<Event> GetAllEvents(string? title, DateTime? from, DateTime? to)
+    public PaginatedResult<Event> GetAllEvents(EventQueryParams queryParams)
     {
         var events = _storage.Events;
 
-        if (title != null && from != null && to != null)
+        if (queryParams.Title != null && queryParams.From != null && queryParams.To != null)
         {
             events = events
-                .Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase) &&
-                    e.StartAt >= from &&
-                    e.EndAt <= to)
+                .Where(e => e.Title.Contains(queryParams.Title, StringComparison.OrdinalIgnoreCase) &&
+                    e.StartAt >= queryParams.From &&
+                    e.EndAt <= queryParams.To)
                 .ToList();
         }
-        return events;
+
+        var eventsOnPage = events
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
+            .ToList();
+
+        var paginatedResult = new PaginatedResult<Event>
+        {
+            TotalItems = events.Count,
+            Items = eventsOnPage,
+            CurrrentPage = queryParams.Page,
+            ItemsOnCurrrentPage = eventsOnPage.Count
+        };
+
+        return paginatedResult;
     }
 
     /// <inheritdoc/>

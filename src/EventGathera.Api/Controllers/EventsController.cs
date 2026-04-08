@@ -1,7 +1,9 @@
 ﻿using EventGathera.Api.Domain;
 using EventGathera.Api.DTO.Requests;
+using EventGathera.Api.DTO.Responses;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventGathera.Api.Controllers
 {
@@ -19,14 +21,12 @@ namespace EventGathera.Api.Controllers
         /// <summary>
         /// Получить список всех событий
         /// </summary>
-        /// <param name="title">название события</param>
-        /// <param name="from">Дата начала события</param>
-        /// <param name="to">Дата окончания события</param>
+        /// <param name="queryParams">Параметры запроса для событий</param>
         /// <returns>200, список всех событий</returns>
         [HttpGet]
-        public ActionResult<List<Event>> GetAllEvents([FromQuery] string? title, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+        public ActionResult<PaginatedResult<Event>> GetAllEvents([FromQuery] EventQueryParams queryParams)
         {
-            var events = _eventService.GetAllEvents(title, from, to);
+            var events = _eventService.GetAllEvents(queryParams);
 
             return events;
         }

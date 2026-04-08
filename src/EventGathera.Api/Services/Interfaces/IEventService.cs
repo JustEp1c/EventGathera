@@ -1,5 +1,6 @@
 ﻿using EventGathera.Api.Domain;
 using EventGathera.Api.DTO.Requests;
+using EventGathera.Api.DTO.Responses;
 
 namespace EventGathera.Api.Services.Interfaces;
 
@@ -11,11 +12,9 @@ public interface IEventService
     /// <summary>
     /// Получить все события
     /// </summary>
-    /// <param name="title">название события</param>
-    /// <param name="from">Дата начала события</param>
-    /// <param name="to">Дата окончания события</param>
+    /// <param name="queryParams">Параметры запроса для событий</param>
     /// <returns>Список событий</returns>
-    List<Event> GetAllEvents(string? title, DateTime? from, DateTime? to);
+    PaginatedResult<Event> GetAllEvents(EventQueryParams queryParams);
 
     /// <summary>
     /// Получить событие по id

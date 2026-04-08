@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Api.Extensions.Middleware
 {
+    /// <summary>
+    /// Middleware для перехвата исключений
+    /// </summary>
     public class GlobalExceptionHandlingMiddleware
     {
         private readonly RequestDelegate _next;
