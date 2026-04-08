@@ -16,9 +16,19 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public List<Event> GetAllEvents()
+    public List<Event> GetAllEvents(string? title, DateTime? from, DateTime? to)
     {
-        return _storage.Events;
+        var events = _storage.Events;
+
+        if (title != null && from != null && to != null)
+        {
+            events = events
+                .Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase) &&
+                    e.StartAt >= from &&
+                    e.EndAt <= to)
+                .ToList();
+        }
+        return events;
     }
 
     /// <inheritdoc/>

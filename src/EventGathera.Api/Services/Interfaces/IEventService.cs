@@ -11,8 +11,11 @@ public interface IEventService
     /// <summary>
     /// Получить все события
     /// </summary>
+    /// <param name="title">название события</param>
+    /// <param name="from">Дата начала события</param>
+    /// <param name="to">Дата окончания события</param>
     /// <returns>Список событий</returns>
-    List<Event> GetAllEvents();
+    List<Event> GetAllEvents(string? title, DateTime? from, DateTime? to);
 
     /// <summary>
     /// Получить событие по id

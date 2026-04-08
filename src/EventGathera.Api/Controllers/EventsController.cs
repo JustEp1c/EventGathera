@@ -19,11 +19,14 @@ namespace EventGathera.Api.Controllers
         /// <summary>
         /// Получить список всех событий
         /// </summary>
+        /// <param name="title">название события</param>
+        /// <param name="from">Дата начала события</param>
+        /// <param name="to">Дата окончания события</param>
         /// <returns>200, список всех событий</returns>
         [HttpGet]
-        public ActionResult<List<Event>> GetAllEvents()
+        public ActionResult<List<Event>> GetAllEvents([FromQuery] string? title, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
         {
-            var events = _eventService.GetAllEvents();
+            var events = _eventService.GetAllEvents(title, from, to);
 
             return events;
         }
