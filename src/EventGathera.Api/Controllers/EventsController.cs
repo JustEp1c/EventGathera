@@ -3,7 +3,6 @@ using EventGathera.Api.DTO.Requests;
 using EventGathera.Api.DTO.Responses;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventGathera.Api.Controllers
 {
@@ -19,10 +18,10 @@ namespace EventGathera.Api.Controllers
         }
 
         /// <summary>
-        /// Получить список всех событий
+        /// Получить пагинированный список всех всех событий
         /// </summary>
         /// <param name="queryParams">Параметры запроса для событий</param>
-        /// <returns>200, список всех событий</returns>
+        /// <returns>200, пагинированный список всех событий</returns>
         [HttpGet]
         public ActionResult<PaginatedResult<Event>> GetAllEvents([FromQuery] EventQueryParams queryParams)
         {

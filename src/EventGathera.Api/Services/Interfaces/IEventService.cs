@@ -10,10 +10,10 @@ namespace EventGathera.Api.Services.Interfaces;
 public interface IEventService
 {
     /// <summary>
-    /// Получить все события
+    /// Получить пагинированный список всех событий
     /// </summary>
     /// <param name="queryParams">Параметры запроса для событий</param>
-    /// <returns>Список событий</returns>
+    /// <returns>Пагинированный список событий</returns>
     PaginatedResult<Event> GetAllEvents(EventQueryParams queryParams);
 
     /// <summary>

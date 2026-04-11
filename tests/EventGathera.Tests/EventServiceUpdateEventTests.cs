@@ -1,0 +1,141 @@
+﻿using EventGathera.Api.Domain;
+using EventGathera.Api.DTO.Requests;
+using EventGathera.Api.Services.Implementations;
+using System.ComponentModel.DataAnnotations;
+
+namespace EventGathera.Tests
+{
+    public class EventServiceUpdateEventTests
+    {
+        private readonly EventService _eventService;
+        private readonly EventStorage _eventStorage;
+
+        public EventServiceUpdateEventTests()
+        {
+            _eventStorage = new EventStorage();
+
+            _eventStorage.Events.AddRange(new[]
+            {
+                new Event
+                {
+                    Id = 1,
+                    Title = "Tech Conference 2026",
+                    Description = "Annual tech conference",
+                    StartAt = DateTime.Parse("2026-04-10"),
+                    EndAt = DateTime.Parse("2026-04-12")
+                },
+                new Event
+                {
+                    Id = 2,
+                    Title = "Music Festival",
+                    Description = "Summer music festival",
+                    StartAt = DateTime.Parse("2026-06-15"),
+                    EndAt = DateTime.Parse("2026-06-18")
+                },
+                new Event
+                {
+                    Id = 3,
+                    Title = "AI Workshop",
+                    Description = "Artificial intelligence workshop",
+                    StartAt = DateTime.Parse("2026-05-20"),
+                    EndAt = DateTime.Parse("2026-05-21")
+                }
+            });
+
+            _eventService = new EventService(_eventStorage);
+        }
+
+        [Fact]
+        public void UpdateEvent_WithValidId_ShouldUpdateEventProperties()
+        {
+            // Arrange
+            int validId = 1;
+            var updateRequest = new EventRequest
+            {
+                Title = "Updated Tech Conference 2026",
+                Description = "Updated annual tech conference description",
+                StartAt = DateTime.Parse("2026-04-15"),
+                EndAt = DateTime.Parse("2026-04-18")
+            };
+
+            // Act
+            _eventService.UpdateEvent(validId, updateRequest);
+            var updatedEvent = _eventStorage.Events.First(e => e.Id == validId);
+
+            // Assert
+            Assert.Equal(updateRequest.Title, updatedEvent.Title);
+            Assert.Equal(updateRequest.Description, updatedEvent.Description);
+            Assert.Equal(updateRequest.StartAt, updatedEvent.StartAt);
+            Assert.Equal(updateRequest.EndAt, updatedEvent.EndAt);
+        }
+
+        [Fact]
+        public void UpdateEvent_WithNonExistingId_ShouldThrowKeyNotFoundException()
+        {
+            // Arrange
+            int nonExistingId = 999;
+            var updateRequest = new EventRequest
+            {
+                Title = "New Title",
+                Description = "New Description",
+                StartAt = DateTime.Parse("2026-12-01"),
+                EndAt = DateTime.Parse("2026-12-02")
+            };
+
+            // Act & Assert
+            var exception = Assert.Throws<KeyNotFoundException>(() =>
+                _eventService.UpdateEvent(nonExistingId, updateRequest));
+
+            Assert.Equal($"Событие с ID {nonExistingId} не найдено", exception.Message);
+        }
+
+        [Fact]
+        public void EventRequest_WithEndDateEarlierThanStartDate_ShouldHaveValidationError()
+        {
+            // Arrange
+            var request = new EventRequest
+            {
+                Title = "Invalid Event",
+                Description = "Test Description",
+                StartAt = DateTime.Parse("2026-12-10"),
+                EndAt = DateTime.Parse("2026-12-05") // End before start
+            };
+
+            var validationContext = new ValidationContext(request);
+            var validationResults = new List<ValidationResult>();
+
+            // Act
+            var isValid = Validator.TryValidateObject(request, validationContext, validationResults, true);
+
+            // Assert
+            Assert.False(isValid);
+            Assert.Contains(validationResults, v =>
+                v.ErrorMessage == "Время начала события должно быть меньше времени окончания");
+        }
+
+        [Fact]
+        public void EventRequest_WithEqualStartAndEndDates_ShouldHaveValidationError()
+        {
+            // Arrange
+            var request = new EventRequest
+            {
+                Title = "Same Day Event",
+                Description = "Test Description",
+                StartAt = DateTime.Parse("2026-12-10"),
+                EndAt = DateTime.Parse("2026-12-10") // Equal dates
+            };
+
+            var validationContext = new ValidationContext(request);
+            var validationResults = new List<ValidationResult>();
+
+            // Act
+            var isValid = Validator.TryValidateObject(request, validationContext, validationResults, true);
+
+            // Assert
+            Assert.False(isValid);
+            Assert.Contains(validationResults, v =>
+                v.ErrorMessage == "Время начала события должно быть меньше времени окончания");
+        }
+
+    }
+}
