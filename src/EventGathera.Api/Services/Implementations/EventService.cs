@@ -1,6 +1,7 @@
 ﻿using EventGathera.Api.Domain;
 using EventGathera.Api.DTO.Requests;
 using EventGathera.Api.DTO.Responses;
+using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Interfaces;
 
 namespace EventGathera.Api.Services.Implementations;
@@ -61,7 +62,7 @@ public class EventService : IEventService
 
         if (foundEvent is null)
         {
-            throw new KeyNotFoundException($"Событие с ID {id} не найдено");
+            throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
         return foundEvent;
@@ -91,7 +92,7 @@ public class EventService : IEventService
 
         if (foundEvent is null)
         {
-            throw new KeyNotFoundException($"Событие с ID {id} не найдено");
+            throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
         foundEvent.Title = request.Title;
@@ -108,7 +109,7 @@ public class EventService : IEventService
 
         if (foundEvent is null)
         {
-            throw new KeyNotFoundException($"Событие с ID {id} не найдено");
+            throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
         _storage.Events.Remove(foundEvent);

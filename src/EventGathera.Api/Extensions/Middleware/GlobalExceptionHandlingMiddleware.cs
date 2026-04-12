@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EventGathera.Api.Exceptions;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Api.Extensions.Middleware
@@ -63,7 +64,7 @@ namespace EventGathera.Api.Extensions.Middleware
             => ex switch
             {
                 ValidationException ve => StatusCodes.Status400BadRequest,
-                KeyNotFoundException ke => StatusCodes.Status404NotFound,
+                ResourceNotFoundException ke => StatusCodes.Status404NotFound,
                 _ => StatusCodes.Status500InternalServerError
             };
     }
