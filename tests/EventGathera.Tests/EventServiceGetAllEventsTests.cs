@@ -2,6 +2,7 @@
 using EventGathera.Api.DTO.Requests;
 using EventGathera.Api.DTO.Responses;
 using EventGathera.Api.Services.Implementations;
+using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Tests
 {
@@ -426,6 +427,52 @@ namespace EventGathera.Tests
             Assert.Equal(2, result.CurrrentPage);
             Assert.Equal(1, result.ItemsOnCurrrentPage);
             Assert.Equal("Tech Meetup", result.Items.ElementAt(0).Title);
+        }
+
+        [Fact]
+        public void GetAllEvents_WithEqualFromAndToParams_ShouldHaveValidationError()
+        {
+            // Arrange
+            var request = new EventQueryParams
+            {
+                Title = "Same Day Event",
+                From = DateTime.Parse("2026-12-10"),
+                To = DateTime.Parse("2026-12-10") // Equal dates
+            };
+
+            var validationContext = new ValidationContext(request);
+            var validationResults = new List<ValidationResult>();
+
+            // Act
+            var isValid = Validator.TryValidateObject(request, validationContext, validationResults, true);
+
+            // Assert
+            Assert.False(isValid);
+            Assert.Contains(validationResults, v =>
+                v.ErrorMessage == "Дата начала фильтрации не может быть позже даты окончания фильтрации");
+        }
+
+        [Fact]
+        public void GetAllEvents_WithToEarlierThanFromParams_ShouldHaveValidationError()
+        {
+            // Arrange
+            var request = new EventQueryParams
+            {
+                Title = "Invalid Event",
+                From = DateTime.Parse("2026-12-10"),
+                To = DateTime.Parse("2026-12-09") // From before To
+            };
+
+            var validationContext = new ValidationContext(request);
+            var validationResults = new List<ValidationResult>();
+
+            // Act
+            var isValid = Validator.TryValidateObject(request, validationContext, validationResults, true);
+
+            // Assert
+            Assert.False(isValid);
+            Assert.Contains(validationResults, v =>
+                v.ErrorMessage == "Дата начала фильтрации не может быть позже даты окончания фильтрации");
         }
     }
 }

@@ -25,7 +25,7 @@ namespace EventGathera.Api.DTO.Requests
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (From.HasValue && To.HasValue && From.Value > To.Value)
+            if (From.HasValue && To.HasValue && From.Value >= To.Value)
             {
                 yield return new ValidationResult(
                     "Дата начала фильтрации не может быть позже даты окончания фильтрации",
