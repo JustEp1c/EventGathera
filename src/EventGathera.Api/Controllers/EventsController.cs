@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EventGathera.Api.Controllers
 {
-    [Route("api/events")]
+    [Route("events")]
     [ApiController]
     public class EventsController : ControllerBase
     {
