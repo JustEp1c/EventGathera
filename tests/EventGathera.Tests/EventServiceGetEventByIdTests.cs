@@ -1,4 +1,5 @@
 ﻿using EventGathera.Api.Domain;
+using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
 
 namespace EventGathera.Tests
@@ -69,7 +70,7 @@ namespace EventGathera.Tests
             int nonExiststingId = 999;
 
             // Act & Assert
-            var exception = Assert.Throws<KeyNotFoundException>(() =>
+            var exception = Assert.Throws<ResourceNotFoundException>(() =>
                 _eventService.GetEventById(nonExiststingId));
 
             Assert.Equal($"Событие с ID {nonExiststingId} не найдено", exception.Message);
