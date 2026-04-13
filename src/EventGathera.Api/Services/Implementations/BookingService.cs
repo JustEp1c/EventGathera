@@ -19,8 +19,10 @@ public class BookingService : IBookingService
     }
 
     /// <inheritdoc/>
-    public Task<Booking> CreateBookingAsync(Guid eventId)
+    public Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         var foundEvent = _eventService.GetEventById(eventId);
 
         var newBooking = new Booking
@@ -31,14 +33,18 @@ public class BookingService : IBookingService
             CreatedAt = DateTime.UtcNow,
         };
 
+        ct.ThrowIfCancellationRequested();
+
         _bookingStorage.Bookings.Add(newBooking);
 
         return Task.FromResult(newBooking);
     }
 
     /// <inheritdoc/>
-    public Task<Booking> GetBookingByIdAsync(Guid bookingId)
+    public Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         var foundBooking = _bookingStorage.Bookings.Find(b => b.Id == bookingId);
 
         if (foundBooking is null)

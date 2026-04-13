@@ -92,11 +92,12 @@ namespace EventGathera.Api.Controllers
         /// Создать бронь
         /// </summary>
         /// <param name="id">Уникальный идентификатор события</param>
+        /// <param name="ct">Токен отмены</param>
         /// <returns>202, если бронь создана и отправлена на обработку</returns>
         [HttpPost("{id}/book")]
-        public async Task<IActionResult> CreateBooking(Guid id)
+        public async Task<IActionResult> CreateBooking(Guid id, CancellationToken ct)
         {
-            var result = await _bookingService.CreateBookingAsync(id);
+            var result = await _bookingService.CreateBookingAsync(id, ct);
 
             return AcceptedAtAction(nameof(BookingsController.GetBookingById), 
                 "Bookings", 

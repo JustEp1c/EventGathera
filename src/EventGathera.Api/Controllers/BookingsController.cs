@@ -22,11 +22,12 @@ namespace EventGathera.Api.Controllers
         /// Получить бронь по ID
         /// </summary>
         /// <param name="bookingId">Уникальный идентификатор брони</param>
+        /// <param name="ct">Токен отмены</param>
         /// <returns>200, если бронь найдена</returns>
         [HttpGet("{bookingId}")]
-        public async Task<ActionResult<Booking>> GetBookingById(Guid bookingId)
+        public async Task<ActionResult<Booking>> GetBookingById(Guid bookingId, CancellationToken ct)
         {
-            var result = await _bookingService.GetBookingByIdAsync(bookingId);
+            var result = await _bookingService.GetBookingByIdAsync(bookingId, ct);
 
             return result;
         }
