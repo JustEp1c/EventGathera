@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Domain;
-using EventGathera.Api.DTO.Requests;
-using EventGathera.Api.DTO.Responses;
+﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.Contracts.DTO.Responses;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Interfaces;
 

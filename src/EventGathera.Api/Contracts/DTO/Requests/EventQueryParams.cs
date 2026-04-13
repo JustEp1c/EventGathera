@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EventGathera.Api.DTO.Requests
+namespace EventGathera.Api.Contracts.DTO.Requests
 {
     public class EventQueryParams : IValidatableObject
     {
