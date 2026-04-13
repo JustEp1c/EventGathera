@@ -11,6 +11,9 @@ namespace EventGathera.Api.Controllers
     public class EventsController : ControllerBase
     {
         private readonly IEventService _eventService;
+
+        private readonly IBookingService _bookingService;
+
         public EventsController(IEventService eventService) 
         {
             _eventService = eventService
@@ -81,6 +84,32 @@ namespace EventGathera.Api.Controllers
             _eventService.DeleteEvent(id);
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Создать бронь
+        /// </summary>
+        /// <param name="id">Уникальный идентификатор события</param>
+        /// <returns>202, если бронь создана и отправлена на обработку</returns>
+        [HttpPost("{id}/book")]
+        public async Task<IActionResult> CreateBooking(Guid id)
+        {
+            var result = await _bookingService.CreateBookingAsync(id);
+
+            return AcceptedAtAction(nameof(GetBookingById), new { result.Id, result.EventId, result.Status });
+        }
+
+        /// <summary>
+        /// Получить бронь по ID
+        /// </summary>
+        /// <param name="id">Уникальный идентификатор брони</param>
+        /// <returns>200, если бронь найдена</returns>
+        [HttpGet("/bookings/{id}")]
+        public async Task<ActionResult<Booking>> GetBookingById(Guid id)
+        {
+            var result = await _bookingService.GetBookingByIdAsync(id);
+
+            return result;
         }
     }
 }
