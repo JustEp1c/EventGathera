@@ -1,4 +1,4 @@
-﻿using EventGathera.Api.DTO.Requests;
+﻿using EventGathera.Api.Contracts.DTO.Requests;
 using EventGathera.Api.Services.Implementations;
 using System.ComponentModel.DataAnnotations;
 
@@ -36,7 +36,6 @@ namespace EventGathera.Tests
             Assert.Equal(request.Description, result.Description);
             Assert.Equal(request.StartAt, result.StartAt);
             Assert.Equal(request.EndAt, result.EndAt);
-            Assert.True(result.Id > 0);
             Assert.Contains(result, _eventStorage.Events);
         }
 
@@ -66,29 +65,6 @@ namespace EventGathera.Tests
 
             // Assert
             Assert.NotEqual(event1.Id, event2.Id);
-            Assert.Equal(1, event1.Id);
-            Assert.Equal(2, event2.Id);
-        }
-
-        [Fact]
-        public void CreateEvent_WithEmptyStorage_ShouldAssignIdOne()
-        {
-            // Arrange
-            Assert.Empty(_eventStorage.Events);
-
-            var request = new EventRequest
-            {
-                Title = "First Event",
-                Description = "First Description",
-                StartAt = DateTime.Now.AddDays(1),
-                EndAt = DateTime.Now.AddDays(1).AddHours(1)
-            };
-
-            // Act
-            var result = _eventService.CreateEvent(request);
-
-            // Assert
-            Assert.Equal(1, result.Id);
         }
 
         [Fact]

@@ -1,6 +1,7 @@
 ﻿using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
+using System.Security.Cryptography;
 
 namespace EventGathera.Tests
 {
@@ -8,16 +9,23 @@ namespace EventGathera.Tests
     {
         private readonly EventService _eventService;
         private readonly EventStorage _eventStorage;
+        private readonly Guid _existingEventId;
+        private readonly Guid _secondEventId;
+        private readonly Guid _thirdEventId;
 
         public EventServiceDeleteEventTests()
         {
             _eventStorage = new EventStorage();
 
+            _existingEventId = Guid.NewGuid();
+            _secondEventId = Guid.NewGuid();
+            _thirdEventId = Guid.NewGuid();
+
             _eventStorage.Events.AddRange(new[]
             {
                 new Event
                 {
-                    Id = 1,
+                    Id = _existingEventId,
                     Title = "Tech Conference 2026",
                     Description = "Annual tech conference",
                     StartAt = DateTime.Parse("2026-04-10"),
@@ -25,7 +33,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 2,
+                    Id = _secondEventId,
                     Title = "Music Festival",
                     Description = "Summer music festival",
                     StartAt = DateTime.Parse("2026-06-15"),
@@ -33,7 +41,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 3,
+                    Id = _thirdEventId,
                     Title = "AI Workshop",
                     Description = "Artificial intelligence workshop",
                     StartAt = DateTime.Parse("2026-05-20"),
@@ -48,26 +56,26 @@ namespace EventGathera.Tests
         public void DeleteEvent_WithValidId_ShouldDeleteEvent()
         {
             // Arrange
-            int validId = 1;
+            Guid validId = _existingEventId;
 
             // Act
             _eventService.DeleteEvent(validId);
 
             // Assert
-            Assert.DoesNotContain(_eventStorage.Events, e => e.Id == 1);
+            Assert.DoesNotContain(_eventStorage.Events, e => e.Id == _existingEventId);
         }
 
         [Fact]
-        public void DeleteEvent_WithNonExistingId_ShouldThrowKeyNotFoundException()
+        public void DeleteEvent_WithNonExistingId_ShouldThrowResourceNotFoundException()
         {
             // Arrange
-            int nonExiststingId = 999;
+            Guid nonExistingId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
             // Act & Assert
             var exception = Assert.Throws<ResourceNotFoundException>(() =>
-                _eventService.DeleteEvent(nonExiststingId));
+                _eventService.DeleteEvent(nonExistingId));
 
-            Assert.Equal($"Событие с ID {nonExiststingId} не найдено", exception.Message);
+            Assert.Equal($"Событие с ID {nonExistingId} не найдено", exception.Message);
         }
     }
 }

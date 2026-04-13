@@ -37,6 +37,8 @@ public class EventService : IEventService
             events = events.Where(e => e.EndAt <= queryParams.To);
         }
 
+        events = events.OrderBy(e => e.StartAt);
+
         var eventList = events.ToList();
 
         var eventsOnPage = eventList

@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Domain;
-using EventGathera.Api.DTO.Requests;
-using EventGathera.Api.DTO.Responses;
+﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.Contracts.DTO.Responses;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Services.Implementations;
 using System.ComponentModel.DataAnnotations;
 
@@ -10,16 +10,24 @@ namespace EventGathera.Tests
     {
         private readonly EventService _eventService;
         private readonly EventStorage _eventStorage;
+        private readonly Dictionary<string, Guid> _eventIds;
 
         public EventServiceGetAllEventsTests()
         {
             _eventStorage = new EventStorage();
+            _eventIds = new Dictionary<string, Guid>();
+
+            _eventIds["TechConference"] = Guid.NewGuid();
+            _eventIds["MusicFestival"] = Guid.NewGuid();
+            _eventIds["AIWorkshop"] = Guid.NewGuid();
+            _eventIds["TechMeetup"] = Guid.NewGuid();
+            _eventIds["DataScienceSummit"] = Guid.NewGuid();
 
             _eventStorage.Events.AddRange(
             [
                 new Event
                 {
-                    Id = 1,
+                    Id = _eventIds["TechConference"],
                     Title = "Tech Conference 2026",
                     Description = "Annual tech conference",
                     StartAt = DateTime.Parse("2026-04-10"),
@@ -27,7 +35,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 2,
+                    Id = _eventIds["MusicFestival"],
                     Title = "Music Festival",
                     Description = "Summer music festival",
                     StartAt = DateTime.Parse("2026-06-15"),
@@ -35,7 +43,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 3,
+                    Id = _eventIds["AIWorkshop"],
                     Title = "AI Workshop",
                     Description = "Artificial intelligence workshop",
                     StartAt = DateTime.Parse("2026-05-20"),
@@ -43,7 +51,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 4,
+                    Id = _eventIds["TechMeetup"],
                     Title = "Tech Meetup",
                     Description = "Local tech community meetup",
                     StartAt = DateTime.Parse("2026-04-25"),
@@ -51,7 +59,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 5,
+                    Id = _eventIds["DataScienceSummit"],
                     Title = "Data Science Summit",
                     Description = "Big data and analytics conference",
                     StartAt = DateTime.Parse("2026-07-10"),
@@ -170,7 +178,7 @@ namespace EventGathera.Tests
             Assert.NotNull(result);
             Assert.Equal(3, result.TotalItems); // AI Workshop (20.05), Music Festival (15.06), Data Science Summit (10.07)
             Assert.All(result.Items, item => Assert.True(item.StartAt >= queryParams.From.Value));
-            Assert.DoesNotContain(result.Items, item => item.Id == 1 || item.Id == 4); // Tech Conference и Tech Meetup
+            Assert.DoesNotContain(result.Items, item => item.Id == _eventIds["TechConference"] || item.Id == _eventIds["TechMeetup"]); // Tech Conference и Tech Meetup
         }
 
         [Fact]
@@ -191,7 +199,10 @@ namespace EventGathera.Tests
             Assert.NotNull(result);
             Assert.Equal(2, result.TotalItems); // Tech Conference (12.04) и Tech Meetup (25.04)
             Assert.All(result.Items, item => Assert.True(item.EndAt <= queryParams.To.Value));
-            Assert.DoesNotContain(result.Items, item => item.Id == 3 || item.Id == 2 || item.Id == 5);
+            Assert.DoesNotContain(result.Items, item =>
+                item.Id == _eventIds["AIWorkshop"] ||
+                item.Id == _eventIds["MusicFestival"] ||
+                item.Id == _eventIds["DataScienceSummit"]);
         }
 
         [Fact]
@@ -238,8 +249,8 @@ namespace EventGathera.Tests
             Assert.Equal(2, result.Items.Count());
             Assert.Equal(1, result.CurrrentPage);
             Assert.Equal(2, result.ItemsOnCurrrentPage);
-            Assert.Equal(1, result.Items.ElementAt(0).Id);
-            Assert.Equal(2, result.Items.ElementAt(1).Id);
+            Assert.Equal(_eventIds["TechConference"], result.Items.ElementAt(0).Id);
+            Assert.Equal(_eventIds["TechMeetup"], result.Items.ElementAt(1).Id);
         }
 
         [Fact]
@@ -261,8 +272,8 @@ namespace EventGathera.Tests
             Assert.Equal(2, result.Items.Count());
             Assert.Equal(2, result.CurrrentPage);
             Assert.Equal(2, result.ItemsOnCurrrentPage);
-            Assert.Equal(3, result.Items.ElementAt(0).Id);
-            Assert.Equal(4, result.Items.ElementAt(1).Id);
+            Assert.Equal(_eventIds["AIWorkshop"], result.Items.ElementAt(0).Id);
+            Assert.Equal(_eventIds["MusicFestival"], result.Items.ElementAt(1).Id);
         }
 
         [Fact]
@@ -284,7 +295,7 @@ namespace EventGathera.Tests
             Assert.Single(result.Items);
             Assert.Equal(3, result.CurrrentPage);
             Assert.Equal(1, result.ItemsOnCurrrentPage);
-            Assert.Equal(5, result.Items.ElementAt(0).Id);
+            Assert.Equal(_eventIds["DataScienceSummit"], result.Items.ElementAt(0).Id);
         }
 
         [Fact]

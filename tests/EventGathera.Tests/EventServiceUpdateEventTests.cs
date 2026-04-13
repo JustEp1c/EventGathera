@@ -1,5 +1,5 @@
-﻿using EventGathera.Api.Domain;
-using EventGathera.Api.DTO.Requests;
+﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
 using System.ComponentModel.DataAnnotations;
@@ -10,16 +10,23 @@ namespace EventGathera.Tests
     {
         private readonly EventService _eventService;
         private readonly EventStorage _eventStorage;
+        private readonly Guid _techConferenceId;
+        private readonly Guid _musicFestivalId;
+        private readonly Guid _aiWorkshopId;
 
         public EventServiceUpdateEventTests()
         {
             _eventStorage = new EventStorage();
 
+            _techConferenceId = Guid.NewGuid();
+            _musicFestivalId = Guid.NewGuid();
+            _aiWorkshopId = Guid.NewGuid();
+
             _eventStorage.Events.AddRange(new[]
             {
                 new Event
                 {
-                    Id = 1,
+                    Id = _techConferenceId,
                     Title = "Tech Conference 2026",
                     Description = "Annual tech conference",
                     StartAt = DateTime.Parse("2026-04-10"),
@@ -27,7 +34,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 2,
+                    Id = _musicFestivalId,
                     Title = "Music Festival",
                     Description = "Summer music festival",
                     StartAt = DateTime.Parse("2026-06-15"),
@@ -35,7 +42,7 @@ namespace EventGathera.Tests
                 },
                 new Event
                 {
-                    Id = 3,
+                    Id = _aiWorkshopId,
                     Title = "AI Workshop",
                     Description = "Artificial intelligence workshop",
                     StartAt = DateTime.Parse("2026-05-20"),
@@ -50,7 +57,7 @@ namespace EventGathera.Tests
         public void UpdateEvent_WithValidId_ShouldUpdateEventProperties()
         {
             // Arrange
-            int validId = 1;
+            Guid validId = _techConferenceId;
             var updateRequest = new EventRequest
             {
                 Title = "Updated Tech Conference 2026",
@@ -71,10 +78,10 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void UpdateEvent_WithNonExistingId_ShouldThrowKeyNotFoundException()
+        public void UpdateEvent_WithNonExistingId_ShouldThrowResourceNotFoundException()
         {
             // Arrange
-            int nonExistingId = 999;
+            Guid nonExistingId = Guid.NewGuid();
             var updateRequest = new EventRequest
             {
                 Title = "New Title",
