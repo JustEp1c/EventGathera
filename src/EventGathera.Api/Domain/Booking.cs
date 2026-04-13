@@ -10,7 +10,7 @@ public class Booking
     /// <summary>
     /// Уникальный идентификатор брони
     /// </summary>
-    public required Guid Id { get; init; } = Guid.NewGuid();
+    public required Guid Id { get; init; }
 
     /// <summary>
     /// Идентификатор события, к которому относится бронь
@@ -20,12 +20,12 @@ public class Booking
     /// <summary>
     /// Текущий статус брони
     /// </summary>
-    public BookingStatus Status { get; set; } = BookingStatus.Pending;
+    public BookingStatus Status { get; set; }
 
     /// <summary>
     /// Дата время создания брони
     /// </summary>
-    public required DateTime CreatedAt { get; init; } = DateTime.Now;
+    public required DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// Дата и время обработки брони
