@@ -8,25 +8,30 @@ namespace EventGathera.Api.Services.Implementations;
 /// <inheritdoc/>
 public class BookingService : IBookingService
 {
-    private readonly BookingStorage _storage;
+    private readonly BookingStorage _bookingStorage;
 
-    public BookingService(BookingStorage storage)
+    private readonly IEventService _eventService;
+
+    public BookingService(BookingStorage bookingStorage, IEventService eventService)
     {
-        _storage = storage;
+        _bookingStorage = bookingStorage;
+        _eventService = eventService;
     }
 
     /// <inheritdoc/>
     public Task<Booking> CreateBookingAsync(Guid eventId)
     {
+        var foundEvent = _eventService.GetEventById(eventId);
+
         var newBooking = new Booking
         {
             Id = Guid.NewGuid(),
-            EventId = eventId,
+            EventId = foundEvent.Id,
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow,
         };
 
-        _storage.Bookings.Add(newBooking);
+        _bookingStorage.Bookings.Add(newBooking);
 
         return Task.FromResult(newBooking);
     }
@@ -34,11 +39,11 @@ public class BookingService : IBookingService
     /// <inheritdoc/>
     public Task<Booking> GetBookingByIdAsync(Guid bookingId)
     {
-        var foundBooking = _storage.Bookings.Find(b => b.Id == bookingId);
+        var foundBooking = _bookingStorage.Bookings.Find(b => b.Id == bookingId);
 
         if (foundBooking is null)
         {
-            throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена");
+            throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
         }
 
         return Task.FromResult(foundBooking);

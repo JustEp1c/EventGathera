@@ -8,11 +8,11 @@
         /// <summary>
         /// ID ненайденного ресурса
         /// </summary>
-        public int ResourceId { get; }
+        public Guid ResourceId { get; }
 
         public ResourceNotFoundException(string message) : base(message) { }
 
-        public ResourceNotFoundException(string message, int id) : base(message) 
+        public ResourceNotFoundException(string message, Guid id) : base(message) 
         {
             ResourceId = id;
         }

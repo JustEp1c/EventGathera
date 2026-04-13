@@ -21,7 +21,7 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <returns>Событие</returns>
-    Event GetEventById(int id);
+    Event GetEventById(Guid id);
 
     /// <summary>
     /// Создать событие
@@ -35,12 +35,12 @@ public interface IEventService
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <param name="request">DTO для обновления события</param>
-    void UpdateEvent(int id, EventRequest request);
+    void UpdateEvent(Guid id, EventRequest request);
 
     /// <summary>
     /// Удалить событие
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
-    void DeleteEvent(int id);
+    void DeleteEvent(Guid id);
 
 }

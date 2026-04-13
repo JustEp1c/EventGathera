@@ -14,10 +14,12 @@ namespace EventGathera.Api.Controllers
 
         private readonly IBookingService _bookingService;
 
-        public EventsController(IEventService eventService) 
+        public EventsController(IEventService eventService, IBookingService bookingService) 
         {
             _eventService = eventService
                 ?? throw new ArgumentNullException(nameof(IEventService));
+            _bookingService = bookingService 
+                ?? throw new ArgumentNullException(nameof(IBookingService));
         }
 
         /// <summary>
@@ -39,7 +41,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>200, если событие найдено</returns>
         [HttpGet("{id}")]
-        public ActionResult<Event> GetEventById(int id)
+        public ActionResult<Event> GetEventById(Guid id)
         {
             var foundEvent = _eventService.GetEventById(id);
 
@@ -66,7 +68,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="request">DTO обновленного события</param>
         /// <returns>204, если событие обновлено</returns>
         [HttpPut("{id}")]
-        public IActionResult UpdateEvent(int id, [FromBody] EventRequest request)
+        public IActionResult UpdateEvent(Guid id, [FromBody] EventRequest request)
         {
             _eventService.UpdateEvent(id, request);
 
@@ -79,7 +81,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>204, если событие удалено</returns>
         [HttpDelete("{id}")]
-        public IActionResult DeleteEvent(int id)
+        public IActionResult DeleteEvent(Guid id)
         {
             _eventService.DeleteEvent(id);
 
@@ -96,20 +98,10 @@ namespace EventGathera.Api.Controllers
         {
             var result = await _bookingService.CreateBookingAsync(id);
 
-            return AcceptedAtAction(nameof(GetBookingById), new { result.Id, result.EventId, result.Status });
-        }
-
-        /// <summary>
-        /// Получить бронь по ID
-        /// </summary>
-        /// <param name="id">Уникальный идентификатор брони</param>
-        /// <returns>200, если бронь найдена</returns>
-        [HttpGet("/bookings/{id}")]
-        public async Task<ActionResult<Booking>> GetBookingById(Guid id)
-        {
-            var result = await _bookingService.GetBookingByIdAsync(id);
-
-            return result;
+            return AcceptedAtAction(nameof(BookingsController.GetBookingById), 
+                "Bookings", 
+                new { bookingId = result.Id },
+                new { result.Id, result.EventId, result.Status });
         }
     }
 }
