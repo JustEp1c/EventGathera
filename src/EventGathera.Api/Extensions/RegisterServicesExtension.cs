@@ -1,4 +1,5 @@
-﻿using EventGathera.Api.Services.Implementations;
+﻿using EventGathera.Api.BackgroundServices;
+using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
 using System.Reflection;
 
@@ -21,6 +22,8 @@ public static class RegisterServicesExtension
         services.AddScoped<IBookingService, BookingService>();
         services.AddSingleton<EventStorage>();
         services.AddSingleton<BookingStorage>();
+
+        services.AddHostedService<BookingProcessingService>();
 
         return services;
     }
