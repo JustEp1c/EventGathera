@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Domain;
-using EventGathera.Api.DTO.Requests;
-using EventGathera.Api.DTO.Responses;
+﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.Contracts.DTO.Responses;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Interfaces;
 
@@ -37,6 +37,8 @@ public class EventService : IEventService
             events = events.Where(e => e.EndAt <= queryParams.To);
         }
 
+        events = events.OrderBy(e => e.StartAt);
+
         var eventList = events.ToList();
 
         var eventsOnPage = eventList
@@ -56,7 +58,7 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public Event GetEventById(int id)
+    public Event GetEventById(Guid id)
     {
         var foundEvent = _storage.Events.Find(e => e.Id == id);
 
@@ -73,7 +75,7 @@ public class EventService : IEventService
     {
         var newEvent = new Event
         {
-            Id = _storage.Events.Count == 0 ? 1 : _storage.Events.Max(e => e.Id) + 1,
+            Id = Guid.NewGuid(),
             Title = request.Title,
             Description = request.Description,
             StartAt = request.StartAt,
@@ -86,7 +88,7 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public void UpdateEvent(int id, EventRequest request)
+    public void UpdateEvent(Guid id, EventRequest request)
     {
         var foundEvent = _storage.Events.Find(e => e.Id == id);
 
@@ -103,7 +105,7 @@ public class EventService : IEventService
 
 
     /// <inheritdoc/>
-    public void DeleteEvent(int id)
+    public void DeleteEvent(Guid id)
     {
         var foundEvent = _storage.Events.Find(e => e.Id == id);
 

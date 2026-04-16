@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Domain;
-using EventGathera.Api.DTO.Requests;
-using EventGathera.Api.DTO.Responses;
+﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.Contracts.DTO.Responses;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +11,15 @@ namespace EventGathera.Api.Controllers
     public class EventsController : ControllerBase
     {
         private readonly IEventService _eventService;
-        public EventsController(IEventService eventService) 
+
+        private readonly IBookingService _bookingService;
+
+        public EventsController(IEventService eventService, IBookingService bookingService) 
         {
             _eventService = eventService
                 ?? throw new ArgumentNullException(nameof(IEventService));
+            _bookingService = bookingService 
+                ?? throw new ArgumentNullException(nameof(IBookingService));
         }
 
         /// <summary>
@@ -36,7 +41,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>200, если событие найдено</returns>
         [HttpGet("{id}")]
-        public ActionResult<Event> GetEventById(int id)
+        public ActionResult<Event> GetEventById(Guid id)
         {
             var foundEvent = _eventService.GetEventById(id);
 
@@ -63,7 +68,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="request">DTO обновленного события</param>
         /// <returns>204, если событие обновлено</returns>
         [HttpPut("{id}")]
-        public IActionResult UpdateEvent(int id, [FromBody] EventRequest request)
+        public IActionResult UpdateEvent(Guid id, [FromBody] EventRequest request)
         {
             _eventService.UpdateEvent(id, request);
 
@@ -76,11 +81,28 @@ namespace EventGathera.Api.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>204, если событие удалено</returns>
         [HttpDelete("{id}")]
-        public IActionResult DeleteEvent(int id)
+        public IActionResult DeleteEvent(Guid id)
         {
             _eventService.DeleteEvent(id);
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Создать бронь
+        /// </summary>
+        /// <param name="id">Уникальный идентификатор события</param>
+        /// <param name="ct">Токен отмены</param>
+        /// <returns>202, если бронь создана и отправлена на обработку</returns>
+        [HttpPost("{id}/book")]
+        public async Task<IActionResult> CreateBooking(Guid id, CancellationToken ct)
+        {
+            var result = await _bookingService.CreateBookingAsync(id, ct);
+
+            return AcceptedAtAction(nameof(BookingsController.GetBookingById), 
+                "Bookings", 
+                new { bookingId = result.Id },
+                new { result.Id, result.EventId, result.Status });
         }
     }
 }

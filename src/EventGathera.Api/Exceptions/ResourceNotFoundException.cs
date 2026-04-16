@@ -1,20 +1,19 @@
-﻿namespace EventGathera.Api.Exceptions
+﻿namespace EventGathera.Api.Exceptions;
+
+/// <summary>
+/// Тип исключения для ненайденного ресурса
+/// </summary>
+public class ResourceNotFoundException : Exception
 {
     /// <summary>
-    /// Тип исключения для ненайденного ресурса
+    /// ID ненайденного ресурса
     /// </summary>
-    public class ResourceNotFoundException : Exception
+    public Guid ResourceId { get; }
+
+    public ResourceNotFoundException(string message) : base(message) { }
+
+    public ResourceNotFoundException(string message, Guid id) : base(message) 
     {
-        /// <summary>
-        /// ID ненайденного ресурса
-        /// </summary>
-        public int ResourceId { get; }
-
-        public ResourceNotFoundException(string message) : base(message) { }
-
-        public ResourceNotFoundException(string message, int id) : base(message) 
-        {
-            ResourceId = id;
-        }
+        ResourceId = id;
     }
 }

@@ -9,7 +9,7 @@ public class Event
     /// <summary>
     /// Уникальный идентификатор
     /// </summary>
-    public required int Id { get; init; }
+    public required Guid Id { get; init; }
 
     /// <summary>
     /// Название
