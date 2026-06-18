@@ -22,29 +22,35 @@ namespace EventGathera.Tests
 
             _eventStorage.Events.AddRange(
             [
-                new Event
+                new Event(
+                    title: "Tech Conference 2026",
+                    startAt: DateTime.Parse("2026-04-10"),
+                    endAt: DateTime.Parse("2026-04-12"),
+                    totalSeats: 100,
+                    description: "Annual tech conference"
+                )
                 {
-                    Id = _techConferenceId,
-                    Title = "Tech Conference 2026",
-                    Description = "Annual tech conference",
-                    StartAt = DateTime.Parse("2026-04-10"),
-                    EndAt = DateTime.Parse("2026-04-12")
+                    Id = _techConferenceId
                 },
-                new Event
+                new Event(
+                    title: "Music Festival",
+                    startAt: DateTime.Parse("2026-06-15"),
+                    endAt: DateTime.Parse("2026-06-18"),
+                    totalSeats: 200,
+                    description: "Summer music festival"
+                )
                 {
-                    Id = _musicFestivalId,
-                    Title = "Music Festival",
-                    Description = "Summer music festival",
-                    StartAt = DateTime.Parse("2026-06-15"),
-                    EndAt = DateTime.Parse("2026-06-18")
+                    Id = _musicFestivalId
                 },
-                new Event
+                new Event(
+                    title: "AI Workshop",
+                    startAt: DateTime.Parse("2026-05-20"),
+                    endAt: DateTime.Parse("2026-05-21"),
+                    totalSeats: 50,
+                    description: "Artificial intelligence workshop"
+                )
                 {
-                    Id = _aiWorkshopId,
-                    Title = "AI Workshop",
-                    Description = "Artificial intelligence workshop",
-                    StartAt = DateTime.Parse("2026-05-20"),
-                    EndAt = DateTime.Parse("2026-05-21")
+                    Id = _aiWorkshopId
                 }
             ]);
 

@@ -25,45 +25,55 @@ namespace EventGathera.Tests
 
             _eventStorage.Events.AddRange(
             [
-                new Event
+                new Event(
+                    title: "Tech Conference 2026",
+                    startAt: DateTime.Parse("2026-04-10"),
+                    endAt: DateTime.Parse("2026-04-12"),
+                    totalSeats: 100,
+                    description: "Annual tech conference"
+                )
                 {
-                    Id = _eventIds["TechConference"],
-                    Title = "Tech Conference 2026",
-                    Description = "Annual tech conference",
-                    StartAt = DateTime.Parse("2026-04-10"),
-                    EndAt = DateTime.Parse("2026-04-12")
+                    Id = _eventIds["TechConference"]
                 },
-                new Event
+                new Event(
+                    title: "Music Festival",
+                    startAt: DateTime.Parse("2026-06-15"),
+                    endAt: DateTime.Parse("2026-06-18"),
+                    totalSeats: 200,
+                    description: "Summer music festival"
+                )
                 {
-                    Id = _eventIds["MusicFestival"],
-                    Title = "Music Festival",
-                    Description = "Summer music festival",
-                    StartAt = DateTime.Parse("2026-06-15"),
-                    EndAt = DateTime.Parse("2026-06-18")
+                    Id = _eventIds["MusicFestival"]
                 },
-                new Event
+                new Event(
+                    title: "AI Workshop",
+                    startAt: DateTime.Parse("2026-05-20"),
+                    endAt: DateTime.Parse("2026-05-21"),
+                    totalSeats: 50,
+                    description: "Artificial intelligence workshop"
+                )
                 {
-                    Id = _eventIds["AIWorkshop"],
-                    Title = "AI Workshop",
-                    Description = "Artificial intelligence workshop",
-                    StartAt = DateTime.Parse("2026-05-20"),
-                    EndAt = DateTime.Parse("2026-05-21")
+                    Id = _eventIds["AIWorkshop"]
                 },
-                new Event
+                new Event(
+                    title: "Tech Meetup",
+                    startAt: DateTime.Parse("2026-04-25"),
+                    endAt: DateTime.Parse("2026-04-25"),
+                    totalSeats: 30,
+                    description: "Local tech community meetup"
+                )
                 {
-                    Id = _eventIds["TechMeetup"],
-                    Title = "Tech Meetup",
-                    Description = "Local tech community meetup",
-                    StartAt = DateTime.Parse("2026-04-25"),
-                    EndAt = DateTime.Parse("2026-04-25")
+                    Id = _eventIds["TechMeetup"]
                 },
-                new Event
+                new Event(
+                    title: "Data Science Summit",
+                    startAt: DateTime.Parse("2026-07-10"),
+                    endAt: DateTime.Parse("2026-07-12"),
+                    totalSeats: 150,
+                    description: "Big data and analytics conference"
+                )
                 {
-                    Id = _eventIds["DataScienceSummit"],
-                    Title = "Data Science Summit",
-                    Description = "Big data and analytics conference",
-                    StartAt = DateTime.Parse("2026-07-10"),
-                    EndAt = DateTime.Parse("2026-07-12")
+                    Id = _eventIds["DataScienceSummit"]
                 }
             ]);
 

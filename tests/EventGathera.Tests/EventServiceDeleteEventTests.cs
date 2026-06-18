@@ -23,29 +23,35 @@ namespace EventGathera.Tests
 
             _eventStorage.Events.AddRange(new[]
             {
-                new Event
+                new Event(
+                    title: "Tech Conference 2026",
+                    startAt: DateTime.Parse("2026-04-10"),
+                    endAt: DateTime.Parse("2026-04-12"),
+                    totalSeats: 100,
+                    description: "Annual tech conference"
+                )
                 {
-                    Id = _existingEventId,
-                    Title = "Tech Conference 2026",
-                    Description = "Annual tech conference",
-                    StartAt = DateTime.Parse("2026-04-10"),
-                    EndAt = DateTime.Parse("2026-04-12")
+                    Id = _existingEventId  // Устанавливаем Id отдельно, так как конструктор генерирует новый
                 },
-                new Event
+                new Event(
+                    title: "Music Festival",
+                    startAt: DateTime.Parse("2026-06-15"),
+                    endAt: DateTime.Parse("2026-06-18"),
+                    totalSeats: 200,
+                    description: "Summer music festival"
+                )
                 {
-                    Id = _secondEventId,
-                    Title = "Music Festival",
-                    Description = "Summer music festival",
-                    StartAt = DateTime.Parse("2026-06-15"),
-                    EndAt = DateTime.Parse("2026-06-18")
+                    Id = _secondEventId
                 },
-                new Event
+                new Event(
+                    title: "AI Workshop",
+                    startAt: DateTime.Parse("2026-05-20"),
+                    endAt: DateTime.Parse("2026-05-21"),
+                    totalSeats: 50,
+                    description: "Artificial intelligence workshop"
+                )
                 {
-                    Id = _thirdEventId,
-                    Title = "AI Workshop",
-                    Description = "Artificial intelligence workshop",
-                    StartAt = DateTime.Parse("2026-05-20"),
-                    EndAt = DateTime.Parse("2026-05-21")
+                    Id = _thirdEventId
                 }
             });
 

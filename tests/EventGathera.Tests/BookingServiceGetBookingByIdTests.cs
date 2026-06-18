@@ -24,13 +24,15 @@ public class BookingServiceGetBookingByIdTests
 
         _existingEventId = Guid.NewGuid();
 
-        _eventStorage.Events.Add(new Event
+        _eventStorage.Events.Add(new Event(
+            title: "Test Event",
+            startAt: DateTime.UtcNow.AddDays(1),
+            endAt: DateTime.UtcNow.AddDays(2),
+            totalSeats: 100,
+            description: "Test Description"
+        )
         {
-            Id = _existingEventId,
-            Title = "Test Event",
-            Description = "Test Description",
-            StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            Id = _existingEventId
         });
 
         _existingBookingId = Guid.NewGuid();
