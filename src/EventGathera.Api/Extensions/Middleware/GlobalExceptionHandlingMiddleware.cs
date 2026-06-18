@@ -66,6 +66,7 @@ namespace EventGathera.Api.Extensions.Middleware
                 ValidationException ve => StatusCodes.Status400BadRequest,
                 ResourceNotFoundException ke => StatusCodes.Status404NotFound,
                 OperationCanceledException oe => StatusCodes.Status204NoContent,
+                NoAvailableSeatsException ns => StatusCodes.Status409Conflict,
                 _ => StatusCodes.Status500InternalServerError
             };
     }

@@ -12,6 +12,8 @@ public class BookingService : IBookingService
 
     private readonly IEventService _eventService;
 
+    private readonly object _bookingLock = new();
+
     public BookingService(BookingStorage bookingStorage, IEventService eventService)
     {
         _bookingStorage = bookingStorage;
@@ -25,17 +27,29 @@ public class BookingService : IBookingService
 
         var foundEvent = _eventService.GetEventById(eventId);
 
-        var newBooking = new Booking
+        Booking newBooking = null!;
+
+        lock (_bookingLock)
         {
-            Id = Guid.NewGuid(),
-            EventId = foundEvent.Id,
-            Status = BookingStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
-        };
 
-        ct.ThrowIfCancellationRequested();
+            if (!foundEvent.TryReserveSeats())
+            {
 
-        _bookingStorage.Bookings.Add(newBooking);
+                throw new NoAvailableSeatsException("Нет свободных мест на это событие");
+
+            }
+
+            newBooking = new Booking
+            {
+                Id = Guid.NewGuid(),
+                EventId = foundEvent.Id,
+                Status = BookingStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            _bookingStorage.Bookings.Add(newBooking);
+
+        }
 
         return Task.FromResult(newBooking);
     }

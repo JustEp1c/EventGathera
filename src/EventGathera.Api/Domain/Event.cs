@@ -52,6 +52,11 @@ public class Event
         AvailableSeats = totalSeats;
     }
 
+    /// <summary>
+    /// Проверка доступных мест в событии
+    /// </summary>
+    /// <param name="count">Количество мест для бронирования</param>
+    /// <returns></returns>
     public bool TryReserveSeats(int count = 1)
     {
         if (AvailableSeats < count)
