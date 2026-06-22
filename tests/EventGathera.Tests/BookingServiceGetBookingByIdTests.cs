@@ -76,7 +76,7 @@ public class BookingServiceGetBookingByIdTests
         Assert.Equal(BookingStatus.Pending, beforeStatus.Status);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var backgroundService = new BookingProcessingService(_bookingStorage, mockLogger.Object);
+        var backgroundService = new BookingProcessingService(_bookingStorage, _eventStorage, mockLogger.Object);
         var backgroundTask = backgroundService.StartAsync(cts.Token);
 
         await Task.Delay(TimeSpan.FromSeconds(6), ct);

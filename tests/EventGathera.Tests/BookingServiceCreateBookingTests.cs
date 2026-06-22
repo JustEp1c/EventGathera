@@ -2,7 +2,6 @@
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
-using EventGathera.Api.Services.Interfaces;
 
 namespace EventGathera.Tests;
 
@@ -12,6 +11,7 @@ public class BookingServiceCreateBookingTests
     private readonly BookingStorage _bookingStorage;
     private readonly EventStorage _eventStorage;
     private readonly Guid _existingEventId;
+    private readonly int _initialTotalSeats = 100;
 
     public BookingServiceCreateBookingTests()
     {
@@ -24,7 +24,7 @@ public class BookingServiceCreateBookingTests
             title: "Test Event",
             startAt: DateTime.UtcNow.AddDays(1),
             endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: 100,
+            totalSeats: _initialTotalSeats,
             description: "Test Description"
         )
         {
@@ -97,6 +97,99 @@ public class BookingServiceCreateBookingTests
             _bookingService.CreateBookingAsync(_existingEventId, ct));
 
         Assert.Equal($"Событие с ID {_existingEventId} не найдено", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreateBooking_ShouldDecreaseAvailableSeatsByOne()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+
+        var eventBefore = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        int initialAvailableSeats = eventBefore.AvailableSeats;
+
+        // Act
+        var booking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+
+        // Assert
+        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        Assert.Equal(initialAvailableSeats - 1, eventAfter.AvailableSeats);
+        Assert.Equal(booking.EventId, _existingEventId);
+    }
+
+    [Fact]
+    public async Task CreateMultipleBookings_UpToLimit_ShouldAllSucceedAndHaveUniqueIds()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        var eventEntity = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        int totalSeats = eventEntity.TotalSeats;
+
+        var bookingIds = new List<Guid>();
+
+        // Act
+        for (int i = 0; i < totalSeats; i++)
+        {
+            var booking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+            bookingIds.Add(booking.Id);
+
+            Assert.Equal(BookingStatus.Pending, booking.Status);
+        }
+
+        // Assert
+        Assert.Equal(totalSeats, bookingIds.Distinct().Count());
+
+        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        Assert.Equal(0, eventAfter.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WhenNoSeatsAvailable_ShouldThrowNoAvailableSeatsException()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        var eventEntity = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        int totalSeats = eventEntity.TotalSeats;
+
+        for (int i = 0; i < totalSeats; i++)
+        {
+            await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        }
+
+        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        Assert.Equal(0, eventAfter.AvailableSeats);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
+            _bookingService.CreateBookingAsync(_existingEventId, ct));
+
+        Assert.Equal("Нет свободных мест на это событие", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WhenNoSeatsAvailable_ShouldNotCreateBookingAndKeepSeatsAtZero()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+        var eventEntity = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        int totalSeats = eventEntity.TotalSeats;
+
+        for (int i = 0; i < totalSeats; i++)
+        {
+            await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        }
+
+        int bookingsCountBefore = _bookingStorage.Bookings.Count;
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
+            _bookingService.CreateBookingAsync(_existingEventId, ct));
+
+        // Assert
+        Assert.Equal(bookingsCountBefore, _bookingStorage.Bookings.Count);
+
+        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        Assert.Equal(0, eventAfter.AvailableSeats);
     }
 }
 
