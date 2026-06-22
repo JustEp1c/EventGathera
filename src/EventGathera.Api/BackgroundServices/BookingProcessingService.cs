@@ -62,13 +62,12 @@ public class BookingProcessingService : BackgroundService
         {
             if (foundEvent is null)
             {
-                booking.Status = BookingStatus.Rejected;
+                booking.Reject();
                 _logger.LogWarning("Событие {EventId} больше не доступно", booking.EventId);
             }
             else
             {
-                booking.Status = BookingStatus.Confirmed;
-                booking.ProcessedAt = DateTime.UtcNow;
+                booking.Confirm();
             }
                 
             _logger.LogInformation("Обработка брони {BookingId} завершена, статус: {BookingStatus}", booking.Id, booking.Status);
@@ -79,7 +78,7 @@ public class BookingProcessingService : BackgroundService
         }
         catch (Exception ex)
         {
-            booking.Status = BookingStatus.Rejected;
+            booking.Reject();
             if (foundEvent is not null)
             {
                 foundEvent.ReleaseSeats();
