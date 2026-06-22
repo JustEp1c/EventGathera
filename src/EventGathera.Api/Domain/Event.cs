@@ -53,7 +53,7 @@ public class Event
     }
 
     /// <summary>
-    /// Проверка доступных мест в событии
+    /// Проверка и бронирование доступных мест в событии
     /// </summary>
     /// <param name="count">Количество мест для бронирования</param>
     /// <returns></returns>
@@ -69,6 +69,11 @@ public class Event
         return true;
     }
 
+    /// <summary>
+    /// Проверка и освобождение занятых мест
+    /// </summary>
+    /// <param name="count">Количество мест для освобождения</param>
+    /// <returns></returns>
     public bool ReleaseSeats(int count = 1)
     {
         int takenSeats = TotalSeats - AvailableSeats;
