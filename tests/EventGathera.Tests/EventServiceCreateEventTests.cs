@@ -24,7 +24,8 @@ namespace EventGathera.Tests
                 Title = "Test Event",
                 Description = "description",
                 StartAt = DateTime.Now.AddDays(1),
-                EndAt = DateTime.Now.AddDays(1).AddHours(1)
+                EndAt = DateTime.Now.AddDays(1).AddHours(1),
+                TotalSeats = 100
             };
 
             // Act
@@ -48,7 +49,8 @@ namespace EventGathera.Tests
                 Title = "Event 1",
                 Description = "Description 1",
                 StartAt = DateTime.Now.AddDays(1),
-                EndAt = DateTime.Now.AddDays(1).AddHours(1)
+                EndAt = DateTime.Now.AddDays(1).AddHours(1),
+                TotalSeats = 100
             };
 
             var request2 = new EventRequest
@@ -56,7 +58,8 @@ namespace EventGathera.Tests
                 Title = "Event 2",
                 Description = "Description 2",
                 StartAt = DateTime.Now.AddDays(2),
-                EndAt = DateTime.Now.AddDays(2).AddHours(1)
+                EndAt = DateTime.Now.AddDays(2).AddHours(1),
+                TotalSeats = 100
             };
 
             // Act
@@ -76,7 +79,8 @@ namespace EventGathera.Tests
                 Title = "Invalid Event",
                 Description = "Test Description",
                 StartAt = DateTime.Parse("2026-12-10"),
-                EndAt = DateTime.Parse("2026-12-05") // End before start
+                EndAt = DateTime.Parse("2026-12-05"), // End before start
+                TotalSeats = 100
             };
 
             var validationContext = new ValidationContext(request);
@@ -100,7 +104,8 @@ namespace EventGathera.Tests
                 Title = "Same Day Event",
                 Description = "Test Description",
                 StartAt = DateTime.Parse("2026-12-10"),
-                EndAt = DateTime.Parse("2026-12-10") // Equal dates
+                EndAt = DateTime.Parse("2026-12-10"), // Equal dates
+                TotalSeats = 100
             };
 
             var validationContext = new ValidationContext(request);

@@ -1,4 +1,5 @@
-﻿using EventGathera.Api.Contracts.Enums;
+﻿using EventGathera.Api.Constants;
+using EventGathera.Api.Contracts.Enums;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
@@ -42,7 +43,7 @@ public class BookingProcessingService : BackgroundService
                 await Task.WhenAll(tasks);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(ProcessingConstants.PollingIntervalInSeconds), stoppingToken);
         }
 
         _logger.LogInformation("Сервис для обработки бронирований остановлен");
@@ -52,7 +53,7 @@ public class BookingProcessingService : BackgroundService
     {
         _logger.LogInformation("Обработка брони {BookingId} начата", booking.Id);
 
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(ProcessingConstants.ProcessingDelayInSeconds), stoppingToken);
 
         var foundEvent = _eventStorage.Events.Find(e => e.Id == booking.EventId);
 

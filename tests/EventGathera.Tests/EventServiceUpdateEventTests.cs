@@ -69,7 +69,8 @@ namespace EventGathera.Tests
                 Title = "Updated Tech Conference 2026",
                 Description = "Updated annual tech conference description",
                 StartAt = DateTime.Parse("2026-04-15"),
-                EndAt = DateTime.Parse("2026-04-18")
+                EndAt = DateTime.Parse("2026-04-18"),
+                TotalSeats = 100
             };
 
             // Act
@@ -93,7 +94,8 @@ namespace EventGathera.Tests
                 Title = "New Title",
                 Description = "New Description",
                 StartAt = DateTime.Parse("2026-12-01"),
-                EndAt = DateTime.Parse("2026-12-02")
+                EndAt = DateTime.Parse("2026-12-02"),
+                TotalSeats = 100
             };
 
             // Act & Assert
@@ -112,7 +114,8 @@ namespace EventGathera.Tests
                 Title = "Invalid Event",
                 Description = "Test Description",
                 StartAt = DateTime.Parse("2026-12-10"),
-                EndAt = DateTime.Parse("2026-12-05") // End before start
+                EndAt = DateTime.Parse("2026-12-05"), // End before start
+                TotalSeats = 100
             };
 
             var validationContext = new ValidationContext(request);
@@ -136,7 +139,8 @@ namespace EventGathera.Tests
                 Title = "Same Day Event",
                 Description = "Test Description",
                 StartAt = DateTime.Parse("2026-12-10"),
-                EndAt = DateTime.Parse("2026-12-10") // Equal dates
+                EndAt = DateTime.Parse("2026-12-10"), // Equal dates
+                TotalSeats = 100
             };
 
             var validationContext = new ValidationContext(request);

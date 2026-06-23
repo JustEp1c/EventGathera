@@ -25,12 +25,11 @@ public class BookingService : IBookingService
     {
         ct.ThrowIfCancellationRequested();
 
-        var foundEvent = _eventService.GetEventById(eventId);
-
         Booking newBooking = null!;
 
         lock (_bookingLock)
         {
+            var foundEvent = _eventService.GetEventById(eventId);
 
             if (!foundEvent.TryReserveSeats())
             {

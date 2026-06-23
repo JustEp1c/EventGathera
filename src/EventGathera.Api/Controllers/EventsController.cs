@@ -95,6 +95,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="ct">Токен отмены</param>
         /// <returns>202, если бронь создана и отправлена на обработку</returns>
         [HttpPost("{id}/book")]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateBooking(Guid id, CancellationToken ct)
         {
             var result = await _bookingService.CreateBookingAsync(id, ct);
