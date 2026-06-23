@@ -73,14 +73,13 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public Event CreateEvent(EventRequest request)
     {
-        var newEvent = new Event
-        {
-            Id = Guid.NewGuid(),
-            Title = request.Title,
-            Description = request.Description,
-            StartAt = request.StartAt,
-            EndAt = request.EndAt
-        };
+        var newEvent = new Event(
+            request.Title,
+            request.StartAt,
+            request.EndAt,
+            request.TotalSeats,
+            request.Description
+        );
 
         _storage.Events.Add(newEvent);
 

@@ -21,6 +21,11 @@ public record EventRequest : IValidatableObject
     public string? Description { get; init; }
 
     /// <summary>
+    /// Общее количество мест на событии
+    /// </summary>
+    public int TotalSeats { get; init; }
+
+    /// <summary>
     /// Время начала события
     /// </summary>
     [Required(ErrorMessage = "Время начала события обязательно для заполнения")]
@@ -35,7 +40,7 @@ public record EventRequest : IValidatableObject
     public required DateTime EndAt { get; init; }
 
     /// <summary>
-    /// Проверка временного периода на корректность
+    /// Валидация события
     /// </summary>
     /// <param name="validationContext"></param>
     /// <returns></returns>
@@ -46,6 +51,13 @@ public record EventRequest : IValidatableObject
             yield return new ValidationResult(
                 "Время начала события должно быть меньше времени окончания",
                 [nameof(EndAt)]);
+        }
+
+        if (TotalSeats <= 0)
+        {
+            yield return new ValidationResult(
+                "Количество мест на событии должно быть больше 0",
+                [nameof(TotalSeats)]);
         }
     }
 }
