@@ -33,6 +33,16 @@ public class Booking
     public DateTime? ProcessedAt { get; set; }
 
     /// <summary>
+    /// Навигационное свойство для связи с событием
+    /// </summary>
+    public Event Event { get; set; }
+
+    private Booking()
+    {
+
+    }
+
+    /// <summary>
     /// Подтверждение брони
     /// </summary>
     public void Confirm()

@@ -14,7 +14,7 @@ public class Event
     /// <summary>
     /// Название
     /// </summary>
-    public string Title { get; set; }
+    public string Title { get; set; } = null!;
 
     /// <summary>
     /// Описание
@@ -41,6 +41,11 @@ public class Event
     /// </summary>
     public DateTime EndAt { get; set; }
 
+    /// <summary>
+    /// Навигационное свойство для связи с бронированиями
+    /// </summary>
+    public List<Booking> Bookings { get; set; }
+
     public Event(string title, DateTime startAt, DateTime endAt, int totalSeats, string? description = null)
     {
         Id = Guid.NewGuid();
@@ -50,6 +55,11 @@ public class Event
         EndAt = endAt;
         TotalSeats = totalSeats;
         AvailableSeats = totalSeats;
+    }
+
+    private Event()
+    {
+
     }
 
     /// <summary>
