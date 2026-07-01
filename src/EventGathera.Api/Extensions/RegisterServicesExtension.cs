@@ -1,4 +1,5 @@
 ﻿using EventGathera.Api.BackgroundServices;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
 using System.Reflection;
@@ -24,6 +25,8 @@ public static class RegisterServicesExtension
         services.AddSingleton<BookingStorage>();
 
         services.AddHostedService<BookingProcessingService>();
+
+        services.AddDbContext<AppDbContext>();
 
         return services;
     }

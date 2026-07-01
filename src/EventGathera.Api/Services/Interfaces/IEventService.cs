@@ -14,33 +14,33 @@ public interface IEventService
     /// </summary>
     /// <param name="queryParams">Параметры запроса для событий</param>
     /// <returns>Пагинированный список событий</returns>
-    PaginatedResult<Event> GetAllEvents(EventQueryParams queryParams);
+    Task<PaginatedResult<Event>> GetAllEventsAsync(EventQueryParams queryParams);
 
     /// <summary>
     /// Получить событие по id
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <returns>Событие</returns>
-    Event GetEventById(Guid id);
+    Task<Event> GetEventByIdAsync(Guid id);
 
     /// <summary>
     /// Создать событие
     /// </summary>
     /// <param name="request">DTO для создания события</param>
     /// <returns>Созданное событие</returns>
-    Event CreateEvent(EventRequest request);
+    Task<Event> CreateEventAsync(EventRequest request);
 
     /// <summary>
     /// Обновить событие целиком
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
     /// <param name="request">DTO для обновления события</param>
-    void UpdateEvent(Guid id, EventRequest request);
+    Task UpdateEventAsync(Guid id, EventRequest request);
 
     /// <summary>
     /// Удалить событие
     /// </summary>
     /// <param name="id">Уникальный идентификатор</param>
-    void DeleteEvent(Guid id);
+    Task DeleteEventAsync(Guid id);
 
 }

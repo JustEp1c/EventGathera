@@ -1,8 +1,10 @@
 ﻿using EventGathera.Api.Contracts.DTO.Requests;
 using EventGathera.Api.Contracts.DTO.Responses;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventGathera.Api.Services.Implementations;
 
@@ -10,17 +12,17 @@ namespace EventGathera.Api.Services.Implementations;
 /// <inheritdoc/>
 public class EventService : IEventService
 {
-    private readonly EventStorage _storage;
+    private readonly AppDbContext _appDbContext;
 
-    public EventService(EventStorage storage)
+    public EventService(AppDbContext appDbContext)
     {
-        _storage = storage;
+        _appDbContext = appDbContext;
     }
 
     /// <inheritdoc/>
-    public PaginatedResult<Event> GetAllEvents(EventQueryParams queryParams)
+    public async Task<PaginatedResult<Event>> GetAllEventsAsync(EventQueryParams queryParams)
     {
-        IEnumerable<Event> events = _storage.Events;
+        IQueryable<Event> events = _appDbContext.Events;
 
         if (!string.IsNullOrWhiteSpace(queryParams.Title))
         {
@@ -39,16 +41,16 @@ public class EventService : IEventService
 
         events = events.OrderBy(e => e.StartAt);
 
-        var eventList = events.ToList();
+        var totalItems = await events.CountAsync();
 
-        var eventsOnPage = eventList
+        var eventsOnPage = await events
             .Skip((queryParams.Page - 1) * queryParams.PageSize)
             .Take(queryParams.PageSize)
-            .ToList();
+            .ToListAsync();
 
         var paginatedResult = new PaginatedResult<Event>
         {
-            TotalItems = eventList.Count,
+            TotalItems = totalItems,
             Items = eventsOnPage,
             CurrrentPage = queryParams.Page,
             ItemsOnCurrrentPage = eventsOnPage.Count
@@ -58,9 +60,9 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public Event GetEventById(Guid id)
+    public async Task<Event> GetEventByIdAsync(Guid id)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id);
+        var foundEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
 
         if (foundEvent is null)
         {
@@ -71,7 +73,7 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public Event CreateEvent(EventRequest request)
+    public async Task<Event> CreateEventAsync(EventRequest request)
     {
         var newEvent = new Event(
             request.Title,
@@ -81,15 +83,17 @@ public class EventService : IEventService
             request.Description
         );
 
-        _storage.Events.Add(newEvent);
+        _appDbContext.Add(newEvent);
+
+        await _appDbContext.SaveChangesAsync();
 
         return newEvent;
     }
 
     /// <inheritdoc/>
-    public void UpdateEvent(Guid id, EventRequest request)
+    public async Task UpdateEventAsync(Guid id, EventRequest request)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id);
+        var foundEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
 
         if (foundEvent is null)
         {
@@ -100,20 +104,24 @@ public class EventService : IEventService
         foundEvent.Description = request.Description;
         foundEvent.StartAt = request.StartAt;
         foundEvent.EndAt = request.EndAt;
+
+        await _appDbContext.SaveChangesAsync();
     }
 
 
     /// <inheritdoc/>
-    public void DeleteEvent(Guid id)
+    public async Task DeleteEventAsync(Guid id)
     {
-        var foundEvent = _storage.Events.Find(e => e.Id == id);
+        var foundEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
 
         if (foundEvent is null)
         {
             throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
-        _storage.Events.Remove(foundEvent);
+        _appDbContext.Events.Remove(foundEvent);
+
+        await _appDbContext.SaveChangesAsync();
     }
 
 }
