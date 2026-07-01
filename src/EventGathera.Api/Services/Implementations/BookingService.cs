@@ -9,6 +9,8 @@ namespace EventGathera.Api.Services.Implementations;
 /// <inheritdoc/>
 public class BookingService : IBookingService
 {
+    private readonly SemaphoreSlim BookingLock = new(1, 1);
+
     private readonly AppDbContext _appDbContext;
 
     public BookingService(AppDbContext appDbContext)
@@ -21,13 +23,12 @@ public class BookingService : IBookingService
     {
         ct.ThrowIfCancellationRequested();
 
-        using var transaction = await _appDbContext.Database.BeginTransactionAsync(ct);
+        await BookingLock.WaitAsync(ct);
 
         try
         {
             var foundEvent = await _appDbContext.Events
-                .FromSqlRaw("SELECT * FROM events WHERE id = {0} FOR UPDATE", eventId)
-                .FirstOrDefaultAsync(ct);
+                .FirstOrDefaultAsync(e => e.Id == eventId, ct);
 
             if (foundEvent is null)
             {
@@ -52,20 +53,12 @@ public class BookingService : IBookingService
 
             await _appDbContext.SaveChangesAsync(ct);
 
-            await transaction.CommitAsync(ct);
-
             return newBooking;
 
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            await transaction.RollbackAsync(ct);
-            throw new InvalidOperationException("Количество мест было изменено другим пользователем. Попробуйте еще раз.");
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
-            throw;
+        finally 
+        { 
+            BookingLock.Release(); 
         }
     }
 
