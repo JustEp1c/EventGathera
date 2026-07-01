@@ -1,26 +1,46 @@
-﻿using EventGathera.Api.Domain;
+﻿using EventGathera.Api.DataAccess;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventGathera.Tests
 {
     public class EventServiceGetEventByIdTests
     {
-        private readonly EventService _eventService;
-        private readonly EventStorage _eventStorage;
+        private readonly AppDbContext _dbContext;
+        private readonly IEventService _eventService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly string _dbName;
         private readonly Guid _techConferenceId;
         private readonly Guid _musicFestivalId;
         private readonly Guid _aiWorkshopId;
 
         public EventServiceGetEventByIdTests()
         {
-            _eventStorage = new EventStorage();
+            _dbName = Guid.NewGuid().ToString();
 
             _techConferenceId = Guid.NewGuid();
             _musicFestivalId = Guid.NewGuid();
             _aiWorkshopId = Guid.NewGuid();
 
-            _eventStorage.Events.AddRange(
+            var services = new ServiceCollection();
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase(_dbName));
+
+            services.AddScoped<IEventService, EventService>();
+            services.AddLogging();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _eventService = _serviceProvider.GetRequiredService<IEventService>();
+
+
+            _dbContext.Events.AddRange(
             [
                 new Event(
                     title: "Tech Conference 2026",
@@ -54,18 +74,20 @@ namespace EventGathera.Tests
                 }
             ]);
 
-            _eventService = new EventService(_eventStorage);
+            _dbContext.SaveChanges();
         }
 
         [Fact]
-        public void GetEventById_WithValidId_ShouldReturnEvent()
+        public async Task GetEventById_WithValidId_ShouldReturnEvent()
         {
             // Arrange
             Guid validId = _musicFestivalId;
-            var expectedEvent = _eventStorage.Events.First(e => e.Id == validId);
+
+            var expectedEvent = await _dbContext.Events
+                .FirstAsync(e => e.Id == validId, cancellationToken: TestContext.Current.CancellationToken);
 
             // Act
-            var result = _eventService.GetEventById(validId);
+            var result = await _eventService.GetEventByIdAsync(validId);
 
             // Assert
             Assert.NotNull(result);
@@ -74,20 +96,33 @@ namespace EventGathera.Tests
             Assert.Equal(expectedEvent.Description, result.Description);
             Assert.Equal(expectedEvent.StartAt, result.StartAt);
             Assert.Equal(expectedEvent.EndAt, result.EndAt);
+            Assert.Equal(expectedEvent.TotalSeats, result.TotalSeats);
+            Assert.Equal(expectedEvent.AvailableSeats, result.AvailableSeats);
         }
 
         [Fact]
-        public void GetEventById_WithNonExistingId_ShouldThrowResourceNotFoundException()
+        public async Task GetEventById_WithNonExistingId_ShouldThrowResourceNotFoundException()
         {
             // Arrange
             Guid nonExistingId = Guid.NewGuid();
 
             // Act & Assert
-            var exception = Assert.Throws<ResourceNotFoundException>(() =>
-                _eventService.GetEventById(nonExistingId));
+            var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+                _eventService.GetEventByIdAsync(nonExistingId));
 
             Assert.Equal($"Событие с ID {nonExistingId} не найдено", exception.Message);
         }
 
+        public void Dispose()
+        {
+            // Очищаем InMemory БД после каждого теста
+            _dbContext?.Database.EnsureDeleted();
+            _dbContext?.Dispose();
+
+            if (_serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
     }
 }

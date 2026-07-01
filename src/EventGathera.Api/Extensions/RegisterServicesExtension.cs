@@ -1,6 +1,8 @@
 ﻿using EventGathera.Api.BackgroundServices;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
 namespace EventGathera.Api.Extensions;
@@ -15,15 +17,19 @@ public static class RegisterServicesExtension
     /// Зарегистрировать сервисы
     /// </summary>
     /// <param name="services"></param>
+    /// <param name="configuration"></param>
     /// <returns></returns>
-    public static IServiceCollection RegisterServices(this IServiceCollection services)
+    public static IServiceCollection RegisterServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
-        services.AddSingleton<EventStorage>();
-        services.AddSingleton<BookingStorage>();
 
         services.AddHostedService<BookingProcessingService>();
+
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(
+            configuration.GetConnectionString("DefaultConnection"))
+            .UseSnakeCaseNamingConvention());
 
         return services;
     }

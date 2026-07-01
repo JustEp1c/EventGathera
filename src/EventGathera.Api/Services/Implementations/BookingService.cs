@@ -1,36 +1,40 @@
-﻿using EventGathera.Api.Contracts.Enums;
+﻿using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventGathera.Api.Services.Implementations;
 
 /// <inheritdoc/>
 public class BookingService : IBookingService
 {
-    private readonly BookingStorage _bookingStorage;
+    private readonly SemaphoreSlim BookingLock = new(1, 1);
 
-    private readonly IEventService _eventService;
+    private readonly AppDbContext _appDbContext;
 
-    private readonly object _bookingLock = new();
-
-    public BookingService(BookingStorage bookingStorage, IEventService eventService)
+    public BookingService(AppDbContext appDbContext)
     {
-        _bookingStorage = bookingStorage;
-        _eventService = eventService;
+        _appDbContext = appDbContext;
     }
 
     /// <inheritdoc/>
-    public Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        var foundEvent = _eventService.GetEventById(eventId);
+        await BookingLock.WaitAsync(ct);
 
-        Booking newBooking = null!;
-
-        lock (_bookingLock)
+        try
         {
+            var foundEvent = await _appDbContext.Events
+                .FirstOrDefaultAsync(e => e.Id == eventId, ct);
+
+            if (foundEvent is null)
+            {
+                throw new ResourceNotFoundException($"Событие с ID {eventId} не найдено", eventId);
+            }
+
 
             if (!foundEvent.TryReserveSeats())
             {
@@ -39,33 +43,37 @@ public class BookingService : IBookingService
 
             }
 
-            newBooking = new Booking
-            {
-                Id = Guid.NewGuid(),
-                EventId = foundEvent.Id,
-                Status = BookingStatus.Pending,
-                CreatedAt = DateTime.UtcNow,
-            };
+            _appDbContext.Events.Update(foundEvent);
 
-            _bookingStorage.Bookings.Add(newBooking);
+            var newBooking = new Booking(
+                foundEvent.Id
+            );
+
+            await _appDbContext.Bookings.AddAsync(newBooking, ct);
+
+            await _appDbContext.SaveChangesAsync(ct);
+
+            return newBooking;
 
         }
-
-        return Task.FromResult(newBooking);
+        finally 
+        { 
+            BookingLock.Release(); 
+        }
     }
 
     /// <inheritdoc/>
-    public Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct)
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        var foundBooking = _bookingStorage.Bookings.Find(b => b.Id == bookingId);
+        var foundBooking = await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
 
         if (foundBooking is null)
         {
             throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
         }
 
-        return Task.FromResult(foundBooking);
+        return foundBooking;
     }
 }

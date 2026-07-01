@@ -1,28 +1,51 @@
-﻿using EventGathera.Api.Domain;
+﻿using EventGathera.Api.DataAccess;
+using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
 
 namespace EventGathera.Tests
 {
     public class EventServiceDeleteEventTests
     {
-        private readonly EventService _eventService;
-        private readonly EventStorage _eventStorage;
+        private readonly AppDbContext _dbContext;
+        private readonly IEventService _eventService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly string _dbName;
         private readonly Guid _existingEventId;
         private readonly Guid _secondEventId;
         private readonly Guid _thirdEventId;
 
         public EventServiceDeleteEventTests()
         {
-            _eventStorage = new EventStorage();
+            _dbName = Guid.NewGuid().ToString();
 
             _existingEventId = Guid.NewGuid();
             _secondEventId = Guid.NewGuid();
             _thirdEventId = Guid.NewGuid();
 
-            _eventStorage.Events.AddRange(new[]
-            {
+            var services = new ServiceCollection();
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase(_dbName));
+
+            services.AddScoped<IEventService, EventService>();
+            services.AddLogging();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _eventService = _serviceProvider.GetRequiredService<IEventService>();
+
+            _existingEventId = Guid.NewGuid();
+            _secondEventId = Guid.NewGuid();
+            _thirdEventId = Guid.NewGuid();
+
+            _dbContext.Events.AddRange(
+            [
                 new Event(
                     title: "Tech Conference 2026",
                     startAt: DateTime.Parse("2026-04-10"),
@@ -53,35 +76,64 @@ namespace EventGathera.Tests
                 {
                     Id = _thirdEventId
                 }
-            });
+            ]);
 
-            _eventService = new EventService(_eventStorage);
+            _dbContext.SaveChanges();
         }
 
         [Fact]
-        public void DeleteEvent_WithValidId_ShouldDeleteEvent()
+        public async Task DeleteEvent_WithValidId_ShouldDeleteEvent()
         {
             // Arrange
             Guid validId = _existingEventId;
 
+            // Проверяем, что событие существует до удаления
+            var eventBefore = await _dbContext.Events
+                .FirstOrDefaultAsync(e => e.Id == validId, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.NotNull(eventBefore);
+
             // Act
-            _eventService.DeleteEvent(validId);
+            await _eventService.DeleteEventAsync(validId);
 
             // Assert
-            Assert.DoesNotContain(_eventStorage.Events, e => e.Id == _existingEventId);
+            var eventAfter = await _dbContext.Events
+                .FirstOrDefaultAsync(e => e.Id == validId, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Null(eventAfter);
+
+            // Проверяем, что другие события остались
+            var remainingEvents = await _dbContext.Events.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(2, remainingEvents.Count);
+            Assert.Contains(remainingEvents, e => e.Id == _secondEventId);
+            Assert.Contains(remainingEvents, e => e.Id == _thirdEventId);
         }
 
         [Fact]
-        public void DeleteEvent_WithNonExistingId_ShouldThrowResourceNotFoundException()
+        public async Task DeleteEvent_WithNonExistingId_ShouldThrowResourceNotFoundException()
         {
             // Arrange
-            Guid nonExistingId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+            Guid nonExistingId = Guid.NewGuid();
 
             // Act & Assert
-            var exception = Assert.Throws<ResourceNotFoundException>(() =>
-                _eventService.DeleteEvent(nonExistingId));
+            var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+                _eventService.DeleteEventAsync(nonExistingId));
 
             Assert.Equal($"Событие с ID {nonExistingId} не найдено", exception.Message);
+
+            // Проверяем, что количество событий не изменилось
+            var eventsCount = await _dbContext.Events.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(3, eventsCount);
+        }
+
+        public void Dispose()
+        {
+            // Очищаем InMemory БД после каждого теста
+            _dbContext?.Database.EnsureDeleted();
+            _dbContext?.Dispose();
+
+            if (_serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
     }
 }

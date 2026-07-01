@@ -28,9 +28,9 @@ namespace EventGathera.Api.Controllers
         /// <param name="queryParams">Параметры запроса для событий</param>
         /// <returns>200, пагинированный список всех событий</returns>
         [HttpGet]
-        public ActionResult<PaginatedResult<Event>> GetAllEvents([FromQuery] EventQueryParams queryParams)
+        public async Task<ActionResult<PaginatedResult<Event>>> GetAllEvents([FromQuery] EventQueryParams queryParams)
         {
-            var events = _eventService.GetAllEvents(queryParams);
+            var events = await _eventService.GetAllEventsAsync(queryParams);
 
             return events;
         }
@@ -41,9 +41,9 @@ namespace EventGathera.Api.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>200, если событие найдено</returns>
         [HttpGet("{id}")]
-        public ActionResult<Event> GetEventById(Guid id)
+        public async Task<ActionResult<Event>> GetEventById(Guid id)
         {
-            var foundEvent = _eventService.GetEventById(id);
+            var foundEvent = await _eventService.GetEventByIdAsync(id);
 
             return foundEvent;
         }
@@ -54,9 +54,9 @@ namespace EventGathera.Api.Controllers
         /// <param name="request">DTO нового события</param>
         /// <returns>201, если событие создалось</returns>
         [HttpPost]
-        public IActionResult CreateEvent([FromBody] EventRequest request)
+        public async Task<IActionResult> CreateEvent([FromBody] EventRequest request)
         {
-            var result = _eventService.CreateEvent(request);
+            var result = await _eventService.CreateEventAsync(request);
 
             return CreatedAtAction(nameof(GetEventById), new { result.Id }, result);
         }
@@ -68,9 +68,9 @@ namespace EventGathera.Api.Controllers
         /// <param name="request">DTO обновленного события</param>
         /// <returns>204, если событие обновлено</returns>
         [HttpPut("{id}")]
-        public IActionResult UpdateEvent(Guid id, [FromBody] EventRequest request)
+        public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] EventRequest request)
         {
-            _eventService.UpdateEvent(id, request);
+            await _eventService.UpdateEventAsync(id, request);
 
             return NoContent();
         }
@@ -81,9 +81,9 @@ namespace EventGathera.Api.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>204, если событие удалено</returns>
         [HttpDelete("{id}")]
-        public IActionResult DeleteEvent(Guid id)
+        public async Task<IActionResult> DeleteEvent(Guid id)
         {
-            _eventService.DeleteEvent(id);
+            await _eventService.DeleteEventAsync(id);
 
             return NoContent();
         }
@@ -95,6 +95,7 @@ namespace EventGathera.Api.Controllers
         /// <param name="ct">Токен отмены</param>
         /// <returns>202, если бронь создана и отправлена на обработку</returns>
         [HttpPost("{id}/book")]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateBooking(Guid id, CancellationToken ct)
         {
             var result = await _bookingService.CreateBookingAsync(id, ct);

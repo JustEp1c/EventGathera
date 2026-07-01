@@ -1,26 +1,43 @@
 ﻿using EventGathera.Api.Contracts.Enums;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventGathera.Tests;
 
 public class BookingServiceCreateBookingTests
 {
-    private readonly BookingService _bookingService;
-    private readonly BookingStorage _bookingStorage;
-    private readonly EventStorage _eventStorage;
+    private readonly AppDbContext _dbContext;
+    private readonly IBookingService _bookingService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly string _dbName;
     private readonly Guid _existingEventId;
     private readonly int _initialTotalSeats = 100;
 
     public BookingServiceCreateBookingTests()
     {
-        _bookingStorage = new BookingStorage();
-        _eventStorage = new EventStorage();
+        _dbName = Guid.NewGuid().ToString();
+
+        var services = new ServiceCollection();
+
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(_dbName));
+
+        services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IBookingService, BookingService>();
+        services.AddLogging();
+
+        _serviceProvider = services.BuildServiceProvider();
+
+        _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+        _bookingService = _serviceProvider.GetRequiredService<IBookingService>();
 
         _existingEventId = Guid.NewGuid();
-
-        _eventStorage.Events.Add(new Event(
+        var testEvent = new Event(
             title: "Test Event",
             startAt: DateTime.UtcNow.AddDays(1),
             endAt: DateTime.UtcNow.AddDays(2),
@@ -29,10 +46,10 @@ public class BookingServiceCreateBookingTests
         )
         {
             Id = _existingEventId
-        });
+        };
 
-        var eventService = new EventService(_eventStorage);
-        _bookingService = new BookingService(_bookingStorage, eventService);
+        _dbContext.Events.Add(testEvent);
+        _dbContext.SaveChanges();
     }
 
     [Fact]
@@ -90,7 +107,14 @@ public class BookingServiceCreateBookingTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        _eventStorage.Events.RemoveAt(0);
+        var eventToDelete = await _dbContext.Events
+            .FirstOrDefaultAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+
+        if (eventToDelete != null)
+        {
+            _dbContext.Events.Remove(eventToDelete);
+            await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
@@ -105,14 +129,16 @@ public class BookingServiceCreateBookingTests
         // Arrange
         var ct = CancellationToken.None;
 
-        var eventBefore = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventBefore = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         int initialAvailableSeats = eventBefore.AvailableSeats;
 
         // Act
         var booking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
 
         // Assert
-        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventAfter = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(initialAvailableSeats - 1, eventAfter.AvailableSeats);
         Assert.Equal(booking.EventId, _existingEventId);
     }
@@ -122,7 +148,8 @@ public class BookingServiceCreateBookingTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        var eventEntity = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         int totalSeats = eventEntity.TotalSeats;
 
         var bookingIds = new List<Guid>();
@@ -139,7 +166,8 @@ public class BookingServiceCreateBookingTests
         // Assert
         Assert.Equal(totalSeats, bookingIds.Distinct().Count());
 
-        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventAfter = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(0, eventAfter.AvailableSeats);
     }
 
@@ -148,15 +176,18 @@ public class BookingServiceCreateBookingTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        var eventEntity = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         int totalSeats = eventEntity.TotalSeats;
+
 
         for (int i = 0; i < totalSeats; i++)
         {
             await _bookingService.CreateBookingAsync(_existingEventId, ct);
         }
 
-        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventAfter = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(0, eventAfter.AvailableSeats);
 
         // Act & Assert
@@ -171,7 +202,8 @@ public class BookingServiceCreateBookingTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        var eventEntity = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         int totalSeats = eventEntity.TotalSeats;
 
         for (int i = 0; i < totalSeats; i++)
@@ -179,17 +211,31 @@ public class BookingServiceCreateBookingTests
             await _bookingService.CreateBookingAsync(_existingEventId, ct);
         }
 
-        int bookingsCountBefore = _bookingStorage.Bookings.Count;
+        int bookingsCountBefore = await _dbContext.Bookings.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
             _bookingService.CreateBookingAsync(_existingEventId, ct));
 
         // Assert
-        Assert.Equal(bookingsCountBefore, _bookingStorage.Bookings.Count);
+        int bookingsCountAfter = await _dbContext.Bookings.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(bookingsCountBefore, bookingsCountAfter);
 
-        var eventAfter = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        var eventAfter = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(0, eventAfter.AvailableSeats);
+    }
+
+    public void Dispose()
+    {
+        // Очищаем InMemory БД после каждого теста
+        _dbContext?.Database.EnsureDeleted();
+        _dbContext?.Dispose();
+
+        if (_serviceProvider is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 }
 

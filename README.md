@@ -3,13 +3,17 @@
 
 ## Стек технологий
 
-- .NET
+- .NET 10
 - ASP.NET Core Web API
-- Swagger
+- Entity Framework Core
+- PostgreSQL
+- Swagger/OpenAPI
+- xUnit для тестирования
 
 Перед запуском убедитесь, что установлены:
 
 - .NET SDK 10
+- PostgreSQL 16 или выше
 - IDE или редактор кода
 
 ## Инструкция для запуска проекта
@@ -209,20 +213,19 @@ POST /events/123e4567-e89b-12d3-a456-426614174000/book
 
 Для обеспечения корректной работы в многопоточной среде используются следующие примитивы синхронизации:
 
-1. lock в BookingService
+1. SemaphoreSlim в BookingService
 
 ```text
-private readonly object _bookingLock = new object();
+private readonly SemaphoreSlim BookingLock = new(1, 1);
 
-lock (_bookingLock)
+await _processingSemaphore.WaitAsync();
+try
 {
-    if (!foundEvent.TryReserveSeats())
-    {
-        throw new NoAvailableSeatsException("Нет свободных мест на это событие");
-    }
-    
-    newBooking = new Booking { ... };
-    _bookingStorage.Bookings.Add(newBooking);
+    ...Создание брони
+}
+finally
+{
+    _processingSemaphore.Release();
 }
 ```
 
@@ -232,32 +235,7 @@ lock (_bookingLock)
 
 * Два параллельных запроса не смогут одновременно проверить наличие мест и создать бронирование, превышающее лимит
 
-* Вставка нового бронирования в коллекцию происходит потокобезопасно
-
-2. SemaphoreSlim в BookingProcessingService
-
-```text
-private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
-
-await _processingSemaphore.WaitAsync();
-try
-{
-    // Обработка брони
-    booking.Confirm();
-}
-finally
-{
-    _processingSemaphore.Release();
-}
-```
-
-Назначение: Ограничивает количество одновременно обрабатываемых броней. Использование семафора гарантирует:
-
-* Только один поток может обрабатывать бронь в каждый момент времени
-
-* Предотвращает состояние гонки при изменении статуса брони и освобождении мест
-
-* Обеспечивает последовательную обработку броней в порядке их поступления
+* Вставка нового бронирования происходит потокобезопасно
 
 ## Сценарий с овербукингом
 
@@ -311,4 +289,53 @@ finally
 2. Проверки доступных мест перед созданием каждой брони
 
 3. Синхронизации фоновой обработки через SemaphoreSlim
+
+## Требования к базе данных
+
+Для запуска приложения требуется **PostgreSQL**. Приложение использует Entity Framework Core для работы с базой данных.
+
+### Настройка строки подключения
+
+Строка подключения настраивается в файле `appsettings.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=eventapi;Username=postgres;Password=postgres"
+  }
+}
+```
+
+Для локальной разработки вы можете использовать Docker:
+
+```bash
+docker run -d \
+  --name eventapi-postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=eventapi \
+  -p 5432:5432 \
+  postgres:16-alpine
+```
+
+Или используйте docker-compose.yml из репозитория:
+
+```bash
+docker-compose up -d
+```
+
+Схема базы данных создаётся автоматически при первом запуске приложения с использованием EnsureCreated(). Вам не нужно выполнять миграции вручную.
+
+Приложение автоматически:
+
+1. Проверяет наличие базы данных
+
+2. Создаёт базу данных, если она не существует
+
+3. Создаёт все необходимые таблицы
+
+4. Настраивает связи между таблицами
+
+
+В проекте используются InMemory-провайдер Entity Framework Core для тестирования. Это позволяет запускать тесты без необходимости подключения к реальной базе данных.
 

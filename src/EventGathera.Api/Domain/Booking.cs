@@ -10,12 +10,12 @@ public class Booking
     /// <summary>
     /// Уникальный идентификатор брони
     /// </summary>
-    public required Guid Id { get; init; }
+    public Guid Id { get; init; }
 
     /// <summary>
     /// Идентификатор события, к которому относится бронь
     /// </summary>
-    public required Guid EventId { get; init; }
+    public Guid EventId { get; init; }
 
     /// <summary>
     /// Текущий статус брони
@@ -25,12 +25,30 @@ public class Booking
     /// <summary>
     /// Дата время создания брони
     /// </summary>
-    public required DateTime CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// Дата и время обработки брони
     /// </summary>
     public DateTime? ProcessedAt { get; set; }
+
+    /// <summary>
+    /// Навигационное свойство для связи с событием
+    /// </summary>
+    public Event Event { get; set; }
+
+    private Booking()
+    {
+
+    }
+
+    public Booking(Guid eventId)
+    {
+        Id = Guid.NewGuid();
+        EventId = eventId;
+        CreatedAt = DateTime.UtcNow;
+        Status = BookingStatus.Pending;
+    }
 
     /// <summary>
     /// Подтверждение брони

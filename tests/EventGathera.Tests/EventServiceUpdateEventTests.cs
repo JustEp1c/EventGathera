@@ -1,28 +1,47 @@
 ﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Tests
 {
     public class EventServiceUpdateEventTests
     {
-        private readonly EventService _eventService;
-        private readonly EventStorage _eventStorage;
+        private readonly AppDbContext _dbContext;
+        private readonly IEventService _eventService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly string _dbName;
         private readonly Guid _techConferenceId;
         private readonly Guid _musicFestivalId;
         private readonly Guid _aiWorkshopId;
 
         public EventServiceUpdateEventTests()
         {
-            _eventStorage = new EventStorage();
+            _dbName = Guid.NewGuid().ToString();
 
             _techConferenceId = Guid.NewGuid();
             _musicFestivalId = Guid.NewGuid();
             _aiWorkshopId = Guid.NewGuid();
 
-            _eventStorage.Events.AddRange(new[]
+            var services = new ServiceCollection();
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase(_dbName));
+
+            services.AddScoped<IEventService, EventService>();
+            services.AddLogging();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _eventService = _serviceProvider.GetRequiredService<IEventService>();
+
+            _dbContext.Events.AddRange(new[]
             {
                 new Event(
                     title: "Tech Conference 2026",
@@ -56,11 +75,11 @@ namespace EventGathera.Tests
                 }
             });
 
-            _eventService = new EventService(_eventStorage);
+            _dbContext.SaveChanges();
         }
 
         [Fact]
-        public void UpdateEvent_WithValidId_ShouldUpdateEventProperties()
+        public async Task UpdateEvent_WithValidId_ShouldUpdateEventProperties()
         {
             // Arrange
             Guid validId = _techConferenceId;
@@ -69,12 +88,16 @@ namespace EventGathera.Tests
                 Title = "Updated Tech Conference 2026",
                 Description = "Updated annual tech conference description",
                 StartAt = DateTime.Parse("2026-04-15"),
-                EndAt = DateTime.Parse("2026-04-18")
+                EndAt = DateTime.Parse("2026-04-18"),
+                TotalSeats = 150 // Увеличиваем количество мест
             };
 
             // Act
-            _eventService.UpdateEvent(validId, updateRequest);
-            var updatedEvent = _eventStorage.Events.First(e => e.Id == validId);
+            await _eventService.UpdateEventAsync(validId, updateRequest);
+
+            // Обновляем контекст, чтобы получить актуальные данные
+            await _dbContext.Entry(await _dbContext.Events.FindAsync(new object?[] { validId }, TestContext.Current.CancellationToken)).ReloadAsync();
+            var updatedEvent = await _dbContext.Events.FirstAsync(e => e.Id == validId, cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
             Assert.Equal(updateRequest.Title, updatedEvent.Title);
@@ -84,7 +107,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void UpdateEvent_WithNonExistingId_ShouldThrowResourceNotFoundException()
+        public async Task UpdateEvent_WithNonExistingId_ShouldThrowResourceNotFoundException()
         {
             // Arrange
             Guid nonExistingId = Guid.NewGuid();
@@ -93,12 +116,13 @@ namespace EventGathera.Tests
                 Title = "New Title",
                 Description = "New Description",
                 StartAt = DateTime.Parse("2026-12-01"),
-                EndAt = DateTime.Parse("2026-12-02")
+                EndAt = DateTime.Parse("2026-12-02"),
+                TotalSeats = 100
             };
 
             // Act & Assert
-            var exception = Assert.Throws<ResourceNotFoundException>(() =>
-                _eventService.UpdateEvent(nonExistingId, updateRequest));
+            var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+                _eventService.UpdateEventAsync(nonExistingId, updateRequest));
 
             Assert.Equal($"Событие с ID {nonExistingId} не найдено", exception.Message);
         }
@@ -112,7 +136,8 @@ namespace EventGathera.Tests
                 Title = "Invalid Event",
                 Description = "Test Description",
                 StartAt = DateTime.Parse("2026-12-10"),
-                EndAt = DateTime.Parse("2026-12-05") // End before start
+                EndAt = DateTime.Parse("2026-12-05"), // End before start
+                TotalSeats = 100
             };
 
             var validationContext = new ValidationContext(request);
@@ -136,7 +161,8 @@ namespace EventGathera.Tests
                 Title = "Same Day Event",
                 Description = "Test Description",
                 StartAt = DateTime.Parse("2026-12-10"),
-                EndAt = DateTime.Parse("2026-12-10") // Equal dates
+                EndAt = DateTime.Parse("2026-12-10"), // Equal dates
+                TotalSeats = 100
             };
 
             var validationContext = new ValidationContext(request);
