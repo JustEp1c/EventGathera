@@ -1,10 +1,11 @@
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Extensions;
 using EventGathera.Api.Extensions.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.RegisterPresentation();
-builder.Services.RegisterServices();
+builder.Services.RegisterServices(builder.Configuration);
 
 var app = builder.Build();
 
@@ -21,6 +22,12 @@ if (app.Environment.IsDevelopment())
         options.ValidateOnBuild = true;
     });
 
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();
