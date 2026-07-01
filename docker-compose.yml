@@ -1,8 +1,3 @@
-# PostgreSQL для EventApi — совпадает с ConnectionStrings:DefaultConnection в appsettings.json
-# Запуск из корня репозитория: docker compose up -d
-# Остановка: docker compose down
-# Данные сохраняются в именованном томе eventapi_pgdata
-
 services:
   postgres:
     image: postgres:16-alpine

@@ -23,13 +23,13 @@ public static class RegisterServicesExtension
     {
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
-        services.AddSingleton<EventStorage>();
-        services.AddSingleton<BookingStorage>();
 
         services.AddHostedService<BookingProcessingService>();
 
         services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(
+            configuration.GetConnectionString("DefaultConnection"))
+            .UseSnakeCaseNamingConvention());
 
         return services;
     }

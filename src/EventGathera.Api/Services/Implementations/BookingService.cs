@@ -11,12 +11,9 @@ public class BookingService : IBookingService
 {
     private readonly AppDbContext _appDbContext;
 
-    private readonly IEventService _eventService;
-
-    public BookingService(AppDbContext appDbContext, IEventService eventService)
+    public BookingService(AppDbContext appDbContext)
     {
         _appDbContext = appDbContext;
-        _eventService = eventService;
     }
 
     /// <inheritdoc/>
@@ -29,7 +26,7 @@ public class BookingService : IBookingService
         try
         {
             var foundEvent = await _appDbContext.Events
-                .FromSqlRaw("SELECT * FROM Events WHERE Id = {0} FOR UPDATE", eventId)
+                .FromSqlRaw("SELECT * FROM events WHERE id = {0} FOR UPDATE", eventId)
                 .FirstOrDefaultAsync(ct);
 
             if (foundEvent is null)
