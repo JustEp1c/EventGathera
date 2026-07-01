@@ -1,20 +1,25 @@
 ﻿using EventGathera.Api.Contracts.DTO.Requests;
-using EventGathera.Api.Contracts.DTO.Responses;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Tests
 {
     public class EventServiceGetAllEventsTests
     {
-        private readonly EventService _eventService;
-        private readonly EventStorage _eventStorage;
+        private readonly AppDbContext _dbContext;
+        private readonly IEventService _eventService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly string _dbName;
         private readonly Dictionary<string, Guid> _eventIds;
 
         public EventServiceGetAllEventsTests()
         {
-            _eventStorage = new EventStorage();
+            _dbName = Guid.NewGuid().ToString();
             _eventIds = new Dictionary<string, Guid>();
 
             _eventIds["TechConference"] = Guid.NewGuid();
@@ -23,7 +28,21 @@ namespace EventGathera.Tests
             _eventIds["TechMeetup"] = Guid.NewGuid();
             _eventIds["DataScienceSummit"] = Guid.NewGuid();
 
-            _eventStorage.Events.AddRange(
+            var services = new ServiceCollection();
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase(_dbName));
+
+            services.AddScoped<IEventService, EventService>();
+            services.AddLogging();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _eventService = _serviceProvider.GetRequiredService<IEventService>();
+
+
+            _dbContext.Events.AddRange(
             [
                 new Event(
                     title: "Tech Conference 2026",
@@ -77,11 +96,11 @@ namespace EventGathera.Tests
                 }
             ]);
 
-            _eventService = new EventService(_eventStorage);
+            _dbContext.SaveChanges();
         }
 
         [Fact]
-        public void GetAllEvents_WithNoQueryParams_ShouldReturnPaginatedResult()
+        public async Task GetAllEvents_WithNoQueryParams_ShouldReturnPaginatedResult()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -90,24 +109,22 @@ namespace EventGathera.Tests
                 PageSize = 10
             };
 
-            var expectedPaginatedResult = new PaginatedResult<Event>
-            {
-                TotalItems = _eventStorage.Events.Count,
-            };
+            var totalEvents = await _dbContext.Events.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
+
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+            var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
-            Assert.Equal(_eventStorage.Events.Count, result.TotalItems);
+            Assert.Equal(totalEvents, result.TotalItems);
             Assert.Equal(1, result.CurrrentPage);
-            Assert.Equal(_eventStorage.Events.Count, result.ItemsOnCurrrentPage);
-            Assert.Equal(_eventStorage.Events.Count, result.Items.Count());
-            Assert.All(result.Items, item => Assert.Contains(item, _eventStorage.Events));
+            Assert.Equal(totalEvents, result.ItemsOnCurrrentPage);
+            Assert.Equal(totalEvents, result.Items.Count());
+            Assert.All(result.Items, item => Assert.Contains(item, _dbContext.Events));
         }
 
         [Fact]
-        public void GetAllEvents_WithTitleFilter_ShouldReturnOnlyMatchingEvents()
+        public async Task GetAllEvents_WithTitleFilter_ShouldReturnOnlyMatchingEvents()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -118,7 +135,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+            var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -130,7 +147,7 @@ namespace EventGathera.Tests
             Assert.DoesNotContain(result.Items, item => item.Title == "Data Science Summit");
         }
         [Fact]
-        public void GetAllEvents_WithTitleFilter_CaseInsensitive_ShouldWork()
+        public async Task GetAllEvents_WithTitleFilter_CaseInsensitive_ShouldWork()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -141,7 +158,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+            var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.Equal(2, result.TotalItems);
@@ -150,7 +167,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithTitleFilter_NoMatches_ShouldReturnEmptyResult()
+        public async Task GetAllEvents_WithTitleFilter_NoMatches_ShouldReturnEmptyResult()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -161,7 +178,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -171,7 +188,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithFromDateFilter_ShouldReturnEventsStartingAfterDate()
+        public async Task GetAllEvents_WithFromDateFilter_ShouldReturnEventsStartingAfterDate()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -182,7 +199,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -192,7 +209,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithToDateFilter_ShouldReturnEventsEndingBeforeDate()
+        public async Task GetAllEvents_WithToDateFilter_ShouldReturnEventsEndingBeforeDate()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -203,7 +220,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -216,7 +233,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithFromAndToDateFilter_ShouldReturnEventsInDateRange()
+        public async Task GetAllEvents_WithFromAndToDateFilter_ShouldReturnEventsInDateRange()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -228,7 +245,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -241,7 +258,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithPagination_FirstPage_ShouldReturnFirstPageItems()
+        public async Task GetAllEvents_WithPagination_FirstPage_ShouldReturnFirstPageItems()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -251,7 +268,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -264,7 +281,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithPagination_SecondPage_ShouldReturnSecondPageItems()
+        public async Task GetAllEvents_WithPagination_SecondPage_ShouldReturnSecondPageItems()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -274,7 +291,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -287,7 +304,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithPagination_LastPage_WithPartialItems_ShouldReturnRemainingItems()
+        public async Task GetAllEvents_WithPagination_LastPage_WithPartialItems_ShouldReturnRemainingItems()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -297,7 +314,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -309,7 +326,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithPagination_PageBeyondTotal_ShouldReturnEmptyResult()
+        public async Task GetAllEvents_WithPagination_PageBeyondTotal_ShouldReturnEmptyResult()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -319,7 +336,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -330,7 +347,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithPagination_PageSizeLargerThanTotal_ShouldReturnAllItems()
+        public async Task GetAllEvents_WithPagination_PageSizeLargerThanTotal_ShouldReturnAllItems()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -340,7 +357,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -351,7 +368,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithCombinedFilters_TitleAndDateRange_ShouldReturnMatchingEvents()
+        public async Task GetAllEvents_WithCombinedFilters_TitleAndDateRange_ShouldReturnMatchingEvents()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -364,7 +381,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -378,7 +395,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithCombinedFilters_TitleAndFromDate_ShouldReturnCorrectEvents()
+        public async Task GetAllEvents_WithCombinedFilters_TitleAndFromDate_ShouldReturnCorrectEvents()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -390,7 +407,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -400,7 +417,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithCombinedFilters_AllFiltersApplied_ShouldReturnPreciseResults()
+        public async Task GetAllEvents_WithCombinedFilters_AllFiltersApplied_ShouldReturnPreciseResults()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -413,7 +430,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             // Должны найти события с буквой 'a' в названии: 
@@ -428,7 +445,7 @@ namespace EventGathera.Tests
         }
 
         [Fact]
-        public void GetAllEvents_WithCombinedFiltersAndPagination_ShouldReturnCorrectPage()
+        public async Task GetAllEvents_WithCombinedFiltersAndPagination_ShouldReturnCorrectPage()
         {
             // Arrange
             var queryParams = new EventQueryParams
@@ -439,7 +456,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.GetAllEvents(queryParams);
+                    var result = await _eventService.GetAllEventsAsync(queryParams);
 
             // Assert
             Assert.NotNull(result);
@@ -495,5 +512,17 @@ namespace EventGathera.Tests
             Assert.Contains(validationResults, v =>
                 v.ErrorMessage == "Дата начала фильтрации не может быть позже даты окончания фильтрации");
         }
+        public void Dispose()
+        {
+            // Очищаем InMemory БД после каждого теста
+            _dbContext?.Database.EnsureDeleted();
+            _dbContext?.Dispose();
+
+            if (_serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
     }
 }

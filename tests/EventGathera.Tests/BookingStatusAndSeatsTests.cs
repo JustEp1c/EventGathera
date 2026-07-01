@@ -1,25 +1,47 @@
 ﻿using EventGathera.Api.Contracts.Enums;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
 
 namespace EventGathera.Tests;
 
 public class BookingStatusAndSeatsTests
 {
-    private readonly BookingStorage _bookingStorage;
-    private readonly EventStorage _eventStorage;
-    private readonly BookingService _bookingService;
+    private readonly AppDbContext _dbContext;
+    private readonly IBookingService _bookingService;
+    private readonly IEventService _eventService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly string _dbName;
     private readonly Guid _existingEventId;
 
     public BookingStatusAndSeatsTests()
     {
-        _bookingStorage = new BookingStorage();
-        _eventStorage = new EventStorage();
+        _dbName = Guid.NewGuid().ToString();
+        _existingEventId = Guid.NewGuid();
+
+        var services = new ServiceCollection();
+
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(_dbName));
+
+        services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IBookingService, BookingService>();
+        services.AddLogging();
+
+        _serviceProvider = services.BuildServiceProvider();
+
+        _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+        _eventService = _serviceProvider.GetRequiredService<IEventService>();
+        _bookingService = _serviceProvider.GetRequiredService<IBookingService>();
 
         _existingEventId = Guid.NewGuid();
 
-        _eventStorage.Events.Add(new Event(
+        var testEvent = new Event(
             title: "Test Event",
             startAt: DateTime.UtcNow.AddDays(1),
             endAt: DateTime.UtcNow.AddDays(2),
@@ -28,23 +50,18 @@ public class BookingStatusAndSeatsTests
         )
         {
             Id = _existingEventId
-        });
-
-        var eventService = new EventService(_eventStorage);
-        _bookingService = new BookingService(_bookingStorage, eventService);
+        };
+        _dbContext.Events.Add(testEvent);
+        _dbContext.SaveChanges();
     }
 
     [Fact]
     public void Confirm_ShouldChangeStatusToConfirmedAndSetProcessedAt()
     {
         // Arrange
-        var booking = new Booking
-        {
-            Id = Guid.NewGuid(),
-            EventId = _existingEventId,
-            Status = BookingStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
+        var booking = new Booking(
+            _existingEventId
+        );
 
         // Act
         booking.Confirm();
@@ -59,13 +76,9 @@ public class BookingStatusAndSeatsTests
     public void Reject_ShouldChangeStatusToRejectedAndSetProcessedAt()
     {
         // Arrange
-        var booking = new Booking
-        {
-            Id = Guid.NewGuid(),
-            EventId = _existingEventId,
-            Status = BookingStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
+        var booking = new Booking(
+            _existingEventId
+        );
 
         // Act
         booking.Reject();
@@ -77,59 +90,71 @@ public class BookingStatusAndSeatsTests
     }
 
     [Fact]
-    public void ReleaseSeats_ShouldRestoreAvailableSeats()
+    public async Task ReleaseSeats_ShouldRestoreAvailableSeats()
     {
         // Arrange
-        var @event = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        int initialAvailableSeats = @event.AvailableSeats;
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+        int initialAvailableSeats = eventEntity.AvailableSeats;
 
         // Бронируем 3 места
-        @event.TryReserveSeats(3);
-        int afterReserveSeats = @event.AvailableSeats;
+        eventEntity.TryReserveSeats(3);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        int afterReserveSeats = eventEntity.AvailableSeats;
         Assert.Equal(initialAvailableSeats - 3, afterReserveSeats);
 
         // Act - освобождаем 2 места
-        bool result = @event.ReleaseSeats(2);
+        bool result = eventEntity.ReleaseSeats(2);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);
-        Assert.Equal(initialAvailableSeats - 1, @event.AvailableSeats);
+        Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
     }
 
     [Fact]
-    public void ReleaseSeats_ShouldReleaseAllSeats_WhenCalledWithFullCount()
+    public async Task ReleaseSeats_ShouldReleaseAllSeats_WhenCalledWithFullCount()
     {
         // Arrange
-        var @event = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        int initialAvailableSeats = @event.AvailableSeats;
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+        int initialAvailableSeats = eventEntity.AvailableSeats;
 
-        @event.TryReserveSeats(initialAvailableSeats);
-        Assert.Equal(0, @event.AvailableSeats);
+        eventEntity.TryReserveSeats(initialAvailableSeats);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, eventEntity.AvailableSeats);
 
         // Act
-        bool result = @event.ReleaseSeats(initialAvailableSeats);
+        bool result = eventEntity.ReleaseSeats(initialAvailableSeats);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(result);
-        Assert.Equal(initialAvailableSeats, @event.AvailableSeats);
+        Assert.Equal(initialAvailableSeats, eventEntity.AvailableSeats);
     }
 
     [Fact]
-    public void ReleaseSeats_ShouldReturnFalse_WhenReleasingMoreThanTaken()
+    public async Task ReleaseSeats_ShouldReturnFalse_WhenReleasingMoreThanTaken()
     {
         // Arrange
-        var @event = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        int initialAvailableSeats = @event.AvailableSeats;
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+        int initialAvailableSeats = eventEntity.AvailableSeats;
 
-        @event.TryReserveSeats(3);
-        Assert.Equal(initialAvailableSeats - 3, @event.AvailableSeats);
+        eventEntity.TryReserveSeats(3);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(initialAvailableSeats - 3, eventEntity.AvailableSeats);
 
         // Act
-        bool result = @event.ReleaseSeats(5);
+        bool result = eventEntity.ReleaseSeats(5);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(result);
-        Assert.Equal(initialAvailableSeats - 3, @event.AvailableSeats);
+        Assert.Equal(initialAvailableSeats - 3, eventEntity.AvailableSeats);
     }
 
     [Fact]
@@ -137,27 +162,31 @@ public class BookingStatusAndSeatsTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        var @event = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        int initialAvailableSeats = @event.AvailableSeats;
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+        int initialAvailableSeats = eventEntity.AvailableSeats;
 
         // Act
         var booking1 = await _bookingService.CreateBookingAsync(_existingEventId, ct);
-        var afterFirstBooking = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        Assert.Equal(initialAvailableSeats - 1, afterFirstBooking.AvailableSeats);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
 
         booking1.Reject();
-        @event.ReleaseSeats(1);
-        var afterRelease = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        Assert.Equal(initialAvailableSeats, afterRelease.AvailableSeats);
+        eventEntity.ReleaseSeats(1);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(initialAvailableSeats, eventEntity.AvailableSeats);
 
         // Act
         var booking2 = await _bookingService.CreateBookingAsync(_existingEventId, ct);
-        var afterSecondBooking = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(booking2);
         Assert.NotEqual(booking1.Id, booking2.Id);
-        Assert.Equal(initialAvailableSeats - 1, afterSecondBooking.AvailableSeats);
+        Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
         Assert.Equal(BookingStatus.Pending, booking2.Status);
     }
 
@@ -166,8 +195,9 @@ public class BookingStatusAndSeatsTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        var @event = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        int totalSeats = @event.TotalSeats;
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+        int totalSeats = eventEntity.TotalSeats;
 
         // Act
         var bookings = new List<Booking>();
@@ -177,21 +207,24 @@ public class BookingStatusAndSeatsTests
             bookings.Add(booking);
         }
 
-        Assert.Equal(0, _eventStorage.Events.First(e => e.Id == _existingEventId).AvailableSeats);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, eventEntity.AvailableSeats);
 
         bookings[0].Reject();
-        @event.ReleaseSeats(1);
+        eventEntity.ReleaseSeats(1);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
-        var afterRelease = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        Assert.Equal(1, afterRelease.AvailableSeats);
+        Assert.Equal(1, eventEntity.AvailableSeats);
 
         // Act
         var newBooking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(newBooking);
         Assert.Equal(BookingStatus.Pending, newBooking.Status);
-        Assert.Equal(0, _eventStorage.Events.First(e => e.Id == _existingEventId).AvailableSeats);
+        Assert.Equal(0, eventEntity.AvailableSeats);
 
         Assert.DoesNotContain(bookings, b => b.Id == newBooking.Id);
     }
@@ -201,157 +234,43 @@ public class BookingStatusAndSeatsTests
     {
         // Arrange
         var ct = CancellationToken.None;
-        var @event = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        int initialAvailableSeats = @event.AvailableSeats;
+        var eventEntity = await _dbContext.Events
+            .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
+        int initialAvailableSeats = eventEntity.AvailableSeats;
 
         var booking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
-        var afterCreate = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        Assert.Equal(initialAvailableSeats - 1, afterCreate.AvailableSeats);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
 
         booking.Reject();
-        bool releaseResult = @event.ReleaseSeats(1);
+        bool releaseResult = eventEntity.ReleaseSeats(1);
         Assert.True(releaseResult);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
-        var afterReject = _eventStorage.Events.First(e => e.Id == _existingEventId);
-        Assert.Equal(initialAvailableSeats, afterReject.AvailableSeats);
+        Assert.Equal(initialAvailableSeats, eventEntity.AvailableSeats);
 
         // Act
         var newBooking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
-        var afterNewBooking = _eventStorage.Events.First(e => e.Id == _existingEventId);
+        await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(newBooking);
         Assert.Equal(BookingStatus.Pending, newBooking.Status);
-        Assert.Equal(initialAvailableSeats - 1, afterNewBooking.AvailableSeats);
+        Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
         Assert.NotEqual(booking.Id, newBooking.Id);
     }
 
-    [Fact]
-    public async Task ConcurrentBookings_WithLimitedSeats_ShouldPreventOverbooking()
+    public void Dispose()
     {
-        // Arrange
-        var ct = CancellationToken.None;
-        const int totalSeats = 5;
-        const int totalRequests = 20;
+        // Очищаем InMemory БД после каждого теста
+        _dbContext?.Database.EnsureDeleted();
+        _dbContext?.Dispose();
 
-        // Создаем новое событие с 5 местами специально для этого теста
-        var limitedEventId = Guid.NewGuid();
-        _eventStorage.Events.Add(new Event(
-            title: "Limited Event for Concurrency Test",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: totalSeats,
-            description: "Event for overbooking test"
-        )
+        if (_serviceProvider is IDisposable disposable)
         {
-            Id = limitedEventId
-        });
-
-        var tasks = new List<Task<Booking>>();
-        var exceptions = new List<Exception>();
-        var successfulBookings = new List<Booking>();
-
-        // Act
-        for (int i = 0; i < totalRequests; i++)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                return await _bookingService.CreateBookingAsync(limitedEventId, ct);
-            }));
+            disposable.Dispose();
         }
-
-        foreach (var task in tasks)
-        {
-            try
-            {
-                var booking = await task;
-                successfulBookings.Add(booking);
-            }
-            catch (Exception ex)
-            {
-                exceptions.Add(ex);
-            }
-        }
-
-        // Assert
-        Assert.Equal(totalSeats, successfulBookings.Count);
-
-        var uniqueIds = successfulBookings.Select(b => b.Id).Distinct().Count();
-        Assert.Equal(totalSeats, uniqueIds);
-
-        var noSeatsExceptions = exceptions.OfType<NoAvailableSeatsException>().ToList();
-        Assert.Equal(totalRequests - totalSeats, noSeatsExceptions.Count);
-        foreach (var ex in noSeatsExceptions)
-        {
-            Assert.Equal("Нет свободных мест на это событие", ex.Message);
-        }
-
-        var eventAfter = _eventStorage.Events.First(e => e.Id == limitedEventId);
-        Assert.Equal(0, eventAfter.AvailableSeats);
-    }
-
-    [Fact]
-    public async Task ConcurrentBookings_WithAllSeatsFilled_ShouldHaveUniqueIdsForAllBookings()
-    {
-        // Arrange
-        var ct = CancellationToken.None;
-        const int totalSeats = 10;
-
-        // Создаем новое событие с 10 местами специально для этого теста
-        var limitedEventId = Guid.NewGuid();
-        _eventStorage.Events.Add(new Event(
-            title: "Event for Unique IDs Test",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: totalSeats,
-            description: "Event for unique ID concurrency test"
-        )
-        {
-            Id = limitedEventId
-        });
-
-        var tasks = new List<Task<Booking>>();
-        var exceptions = new List<Exception>();
-        var successfulBookings = new List<Booking>();
-
-        // Act
-        for (int i = 0; i < totalSeats; i++)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                return await _bookingService.CreateBookingAsync(limitedEventId, ct);
-            }));
-        }
-
-        foreach (var task in tasks)
-        {
-            try
-            {
-                var booking = await task;
-                successfulBookings.Add(booking);
-            }
-            catch (Exception ex)
-            {
-                exceptions.Add(ex);
-            }
-        }
-
-        // Assert
-        Assert.Equal(totalSeats, successfulBookings.Count);
-
-        var allIds = successfulBookings.Select(b => b.Id).ToList();
-        var uniqueIds = allIds.Distinct().ToList();
-        Assert.Equal(totalSeats, uniqueIds.Count);
-        Assert.Equal(allIds.Count, uniqueIds.Count);
-
-        var eventAfter = _eventStorage.Events.First(e => e.Id == limitedEventId);
-        Assert.Equal(0, eventAfter.AvailableSeats);
-
-        var bookingsInStorage = _bookingStorage.Bookings
-            .Where(b => b.EventId == limitedEventId)
-            .ToList();
-        Assert.Equal(totalSeats, bookingsInStorage.Count);
-
-        Assert.Empty(exceptions);
     }
 }

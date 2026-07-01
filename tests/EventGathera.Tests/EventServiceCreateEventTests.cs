@@ -1,22 +1,40 @@
 ﻿using EventGathera.Api.Contracts.DTO.Requests;
+using EventGathera.Api.DataAccess;
 using EventGathera.Api.Services.Implementations;
+using EventGathera.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Tests
 {
     public class EventServiceCreateEventTests
     {
-        private readonly EventService _eventService;
-        private readonly EventStorage _eventStorage;
+        private readonly AppDbContext _dbContext;
+        private readonly IEventService _eventService; 
+        private readonly IServiceProvider _serviceProvider;
+        private readonly string _dbName;
 
         public EventServiceCreateEventTests() 
         {
-            _eventStorage = new EventStorage();
-            _eventService = new EventService(_eventStorage);
+            _dbName = Guid.NewGuid().ToString();
+
+            var services = new ServiceCollection();
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase(_dbName));
+
+            services.AddScoped<IEventService, EventService>();
+            services.AddLogging();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _eventService = _serviceProvider.GetRequiredService<IEventService>();
         }
 
         [Fact]
-        public void CreateEvent_ShouldReturnCreatedEvent()
+        public async Task CreateEvent_ShouldReturnCreatedEvent()
         {
             // Arrange
             var request = new EventRequest
@@ -29,7 +47,7 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var result = _eventService.CreateEvent(request);
+            var result = await _eventService.CreateEventAsync(request);
 
             // Assert
             Assert.NotNull(result);
@@ -37,11 +55,17 @@ namespace EventGathera.Tests
             Assert.Equal(request.Description, result.Description);
             Assert.Equal(request.StartAt, result.StartAt);
             Assert.Equal(request.EndAt, result.EndAt);
-            Assert.Contains(result, _eventStorage.Events);
+            Assert.Equal(request.TotalSeats, result.TotalSeats);
+            Assert.Equal(request.TotalSeats, result.AvailableSeats);
+
+            var savedEvent = await _dbContext.Events
+                .FirstOrDefaultAsync(e => e.Id == result.Id, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.NotNull(savedEvent);
+            Assert.Equal(result.Title, savedEvent.Title);
         }
 
         [Fact]
-        public void CreateEvent_ShouldAssignUniqueIds()
+        public async Task CreateEvent_ShouldAssignUniqueIds()
         {
             // Arrange
             var request1 = new EventRequest
@@ -63,11 +87,16 @@ namespace EventGathera.Tests
             };
 
             // Act
-            var event1 = _eventService.CreateEvent(request1);
-            var event2 = _eventService.CreateEvent(request2);
+            var event1 = await _eventService.CreateEventAsync(request1);
+            var event2 = await _eventService.CreateEventAsync(request2);
 
             // Assert
             Assert.NotEqual(event1.Id, event2.Id);
+
+            var events = await _dbContext.Events.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(2, events.Count);
+            Assert.Contains(events, e => e.Id == event1.Id);
+            Assert.Contains(events, e => e.Id == event2.Id);
         }
 
         [Fact]
@@ -119,6 +148,16 @@ namespace EventGathera.Tests
             Assert.Contains(validationResults, v =>
                 v.ErrorMessage == "Время начала события должно быть меньше времени окончания");
         }
+        public void Dispose()
+        {
+            // Очищаем InMemory БД после каждого теста
+            _dbContext?.Database.EnsureDeleted();
+            _dbContext?.Dispose();
 
+            if (_serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
     }
 }
