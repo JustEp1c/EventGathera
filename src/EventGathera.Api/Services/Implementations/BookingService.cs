@@ -1,6 +1,7 @@
 ﻿using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
+using EventGathera.Api.Repositories.Interfaces;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +12,14 @@ public class BookingService : IBookingService
 {
     private readonly SemaphoreSlim BookingLock = new(1, 1);
 
-    private readonly AppDbContext _appDbContext;
+    private readonly IBookingRepository _bookingRepository;
 
-    public BookingService(AppDbContext appDbContext)
+    private readonly IEventRepository _eventRepository;
+
+    public BookingService(IBookingRepository bookingRepository, IEventRepository eventRepository)
     {
-        _appDbContext = appDbContext;
+        _bookingRepository = bookingRepository;
+        _eventRepository = eventRepository;
     }
 
     /// <inheritdoc/>
@@ -27,8 +31,7 @@ public class BookingService : IBookingService
 
         try
         {
-            var foundEvent = await _appDbContext.Events
-                .FirstOrDefaultAsync(e => e.Id == eventId, ct);
+            var foundEvent = await _eventRepository.GetEventByIdAsync(eventId);
 
             if (foundEvent is null)
             {
@@ -43,15 +46,13 @@ public class BookingService : IBookingService
 
             }
 
-            _appDbContext.Events.Update(foundEvent);
-
             var newBooking = new Booking(
                 foundEvent.Id
             );
 
-            await _appDbContext.Bookings.AddAsync(newBooking, ct);
+            await _bookingRepository.AdBookingAsync(newBooking, ct);
 
-            await _appDbContext.SaveChangesAsync(ct);
+            await _bookingRepository.SaveChangesAsync(ct);
 
             return newBooking;
 
@@ -67,7 +68,7 @@ public class BookingService : IBookingService
     {
         ct.ThrowIfCancellationRequested();
 
-        var foundBooking = await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
+        var foundBooking = await _bookingRepository.GetBookingByIdAsync(bookingId, ct);
 
         if (foundBooking is null)
         {

@@ -1,5 +1,7 @@
 ﻿using EventGathera.Api.BackgroundServices;
 using EventGathera.Api.DataAccess;
+using EventGathera.Api.Repositories.Implementations;
+using EventGathera.Api.Repositories.Interfaces;
 using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,9 @@ public static class RegisterServicesExtension
     {
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
+
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
 
         services.AddHostedService<BookingProcessingService>();
 

@@ -1,8 +1,8 @@
 ﻿using EventGathera.Api.Contracts.DTO.Requests;
 using EventGathera.Api.Contracts.DTO.Responses;
-using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
+using EventGathera.Api.Repositories.Interfaces;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,17 +12,17 @@ namespace EventGathera.Api.Services.Implementations;
 /// <inheritdoc/>
 public class EventService : IEventService
 {
-    private readonly AppDbContext _appDbContext;
+    private readonly IEventRepository _eventrepository;
 
-    public EventService(AppDbContext appDbContext)
+    public EventService(IEventRepository eventrepository)
     {
-        _appDbContext = appDbContext;
+        _eventrepository = eventrepository;
     }
 
     /// <inheritdoc/>
     public async Task<PaginatedResult<Event>> GetAllEventsAsync(EventQueryParams queryParams)
     {
-        IQueryable<Event> events = _appDbContext.Events;
+        IQueryable<Event> events = _eventrepository.GetAllEventsQuery();
 
         if (!string.IsNullOrWhiteSpace(queryParams.Title))
         {
@@ -62,7 +62,7 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public async Task<Event> GetEventByIdAsync(Guid id)
     {
-        var foundEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
+        var foundEvent = await _eventrepository.GetEventByIdAsync(id);
 
         if (foundEvent is null)
         {
@@ -83,9 +83,9 @@ public class EventService : IEventService
             request.Description
         );
 
-        _appDbContext.Add(newEvent);
+        await _eventrepository.AddEventAsync(newEvent);
 
-        await _appDbContext.SaveChangesAsync();
+        await _eventrepository.SaveChangesAsync();
 
         return newEvent;
     }
@@ -93,7 +93,7 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public async Task UpdateEventAsync(Guid id, EventRequest request)
     {
-        var foundEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
+        var foundEvent = await _eventrepository.GetEventByIdAsync(id);
 
         if (foundEvent is null)
         {
@@ -105,23 +105,23 @@ public class EventService : IEventService
         foundEvent.StartAt = request.StartAt;
         foundEvent.EndAt = request.EndAt;
 
-        await _appDbContext.SaveChangesAsync();
+        await _eventrepository.SaveChangesAsync();
     }
 
 
     /// <inheritdoc/>
     public async Task DeleteEventAsync(Guid id)
     {
-        var foundEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id);
+        var foundEvent = await _eventrepository.GetEventByIdAsync(id);
 
         if (foundEvent is null)
         {
             throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
-        _appDbContext.Events.Remove(foundEvent);
+        _eventrepository.RemoveEvent(foundEvent);
 
-        await _appDbContext.SaveChangesAsync();
+        await _eventrepository.SaveChangesAsync();
     }
 
 }
