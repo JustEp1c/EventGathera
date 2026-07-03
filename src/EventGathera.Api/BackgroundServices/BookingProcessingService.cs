@@ -92,7 +92,7 @@ public class BookingProcessingService : BackgroundService
                     return;
                 }
 
-                var foundEvent = await eventRepo.GetEventByIdAsync(booking.Id, stoppingToken);
+                var foundEvent = await eventRepo.GetEventByIdAsync(currentBooking.EventId, stoppingToken);
 
                 if (foundEvent is null)
                 {
