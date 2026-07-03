@@ -20,7 +20,7 @@ public class BookingRepository : IBookingRepository
         return _appDbContext.Bookings;
     }
 
-    public async Task AdBookingAsync(Booking booking, CancellationToken ct = default)
+    public async Task AddBookingAsync(Booking booking, CancellationToken ct = default)
     {
         await _appDbContext.AddAsync(booking, ct);
     }

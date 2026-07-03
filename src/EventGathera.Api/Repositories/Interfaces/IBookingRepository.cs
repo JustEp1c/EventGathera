@@ -27,7 +27,7 @@ public interface IBookingRepository
     /// <param name="booking"></param>
     /// <param name="ct"></param>
     /// <returns></returns>
-    Task AdBookingAsync(Booking booking, CancellationToken ct = default);
+    Task AddBookingAsync(Booking booking, CancellationToken ct = default);
 
     /// <summary>
     /// Сохранить изменения

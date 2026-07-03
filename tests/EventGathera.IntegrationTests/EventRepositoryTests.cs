@@ -43,10 +43,10 @@ public class EventRepositoryTests : IAsyncLifetime
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(_postgres.GetConnectionString())
+            .UseSnakeCaseNamingConvention()
             .Options;
 
         var context = new AppDbContext(options);
-        context.Database.EnsureCreated();
         return context;
     }
 
@@ -55,7 +55,7 @@ public class EventRepositoryTests : IAsyncLifetime
         NpgsqlConnection.ClearAllPools();
         await using var context = CreateContext();
         await context.Database.EnsureDeletedAsync();
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.MigrateAsync();
     }
 
     [Fact]
@@ -383,4 +383,38 @@ public class EventRepositoryTests : IAsyncLifetime
         Assert.Single(events);
         Assert.Equal("Tech Conference", events[0].Title);
     }
+
+    [Fact]
+    public async Task Migrate_CreatesEventsBookingsAndForeignKey()
+    {
+        await ResetDatabaseAsync();
+
+        await using var context = CreateContext();
+
+        var tables = await context.Database.SqlQueryRaw<string>(@"
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name in ('events', 'bookings')
+        order by table_name")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Contains("events", tables);
+        Assert.Contains("bookings", tables);
+
+        var foreignKeys = await context.Database.SqlQueryRaw<string>(@"
+        select tc.constraint_name
+        from information_schema.table_constraints tc
+        join information_schema.key_column_usage kcu
+          on tc.constraint_name = kcu.constraint_name
+         and tc.table_schema = kcu.table_schema
+        where tc.constraint_type = 'FOREIGN KEY'
+          and tc.table_schema = 'public'
+          and tc.table_name = 'bookings'
+          and kcu.column_name = 'event_id'")
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(foreignKeys);
+    }
+
 }

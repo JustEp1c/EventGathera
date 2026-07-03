@@ -414,10 +414,4 @@ dotnet ef migrations list --project ./src/EventGathera.Api
 ```bash
 # Запуск всех тестов (включая интеграционные)
 dotnet test
-
-# Запуск только интеграционных тестов
-dotnet test --filter "Category=Integration"
-
-# Запуск интеграционных тестов с подробным выводом
-dotnet test --filter "Category=Integration" --verbosity detailed
 ```

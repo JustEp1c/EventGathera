@@ -50,7 +50,7 @@ public class BookingService : IBookingService
                 foundEvent.Id
             );
 
-            await _bookingRepository.AdBookingAsync(newBooking, ct);
+            await _bookingRepository.AddBookingAsync(newBooking, ct);
 
             await _bookingRepository.SaveChangesAsync(ct);
 

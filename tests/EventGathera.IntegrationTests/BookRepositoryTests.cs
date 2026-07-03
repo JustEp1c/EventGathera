@@ -41,10 +41,10 @@ public class BookRepositoryTests : IAsyncLifetime
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(_postgres.GetConnectionString())
+            .UseSnakeCaseNamingConvention()
             .Options;
 
         var context = new AppDbContext(options);
-        context.Database.EnsureCreated();
         return context;
     }
 
@@ -53,7 +53,7 @@ public class BookRepositoryTests : IAsyncLifetime
         NpgsqlConnection.ClearAllPools();
         await using var context = CreateContext();
         await context.Database.EnsureDeletedAsync();
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.MigrateAsync();
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class BookRepositoryTests : IAsyncLifetime
         );
 
         // Act
-        await repository.AdBookingAsync(booking, TestContext.Current.CancellationToken);
+        await repository.AddBookingAsync(booking, TestContext.Current.CancellationToken);
         await repository.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
