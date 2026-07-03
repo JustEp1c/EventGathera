@@ -1,6 +1,7 @@
 using EventGathera.Api.DataAccess;
 using EventGathera.Api.Extensions;
 using EventGathera.Api.Extensions.Middleware;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,7 +28,7 @@ if (app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.UseHttpsRedirection();

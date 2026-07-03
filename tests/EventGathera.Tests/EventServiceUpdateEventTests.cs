@@ -2,6 +2,8 @@
 using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
+using EventGathera.Api.Repositories.Implementations;
+using EventGathera.Api.Repositories.Interfaces;
 using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +36,7 @@ namespace EventGathera.Tests
                 options.UseInMemoryDatabase(_dbName));
 
             services.AddScoped<IEventService, EventService>();
+            services.AddScoped<IEventRepository, EventRepository>();
             services.AddLogging();
 
             _serviceProvider = services.BuildServiceProvider();

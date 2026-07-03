@@ -3,6 +3,7 @@ using EventGathera.Api.Contracts.Enums;
 using EventGathera.Api.DataAccess;
 using EventGathera.Api.Domain;
 using EventGathera.Api.Exceptions;
+using EventGathera.Api.Repositories.Interfaces;
 using EventGathera.Api.Services.Implementations;
 using EventGathera.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -34,9 +35,9 @@ public class BookingProcessingService : BackgroundService
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
 
-                    var pendingBookings = await dbContext.Bookings
+                    var pendingBookings = await bookingRepo.GetAllBookingsQuery()
                         .Where(b => b.Status == BookingStatus.Pending)
                         .Include(b => b.Event)
                         .ToListAsync(stoppingToken);
@@ -71,13 +72,12 @@ public class BookingProcessingService : BackgroundService
 
         using (var scope = _serviceScopeFactory.CreateScope())
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+            var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+            var eventRepo = scope.ServiceProvider.GetRequiredService<IEventRepository>();
 
             try
             {
-                var currentBooking = await dbContext.Bookings
-                        .FirstOrDefaultAsync(b => b.Id == booking.Id, stoppingToken);
+                var currentBooking = await bookingRepo.GetBookingByIdAsync(booking.Id, stoppingToken);
 
                 if (currentBooking is null)
                 {
@@ -92,8 +92,7 @@ public class BookingProcessingService : BackgroundService
                     return;
                 }
 
-                var foundEvent = await dbContext.Events
-                    .FirstOrDefaultAsync(e => e.Id == currentBooking.EventId, stoppingToken);
+                var foundEvent = await eventRepo.GetEventByIdAsync(booking.Id, stoppingToken);
 
                 if (foundEvent is null)
                 {
@@ -114,7 +113,7 @@ public class BookingProcessingService : BackgroundService
                     }
                 }
 
-                await dbContext.SaveChangesAsync(stoppingToken);
+                await bookingRepo.SaveChangesAsync(stoppingToken);
 
                 _logger.LogInformation("Обработка брони {BookingId} завершена, статус: {BookingStatus}", booking.Id, booking.Status);
             }
@@ -132,13 +131,12 @@ public class BookingProcessingService : BackgroundService
 
                 try
                 {
-                    var currentBooking = await dbContext.Bookings
-                        .FirstOrDefaultAsync(b => b.Id == booking.Id, stoppingToken);
+                    var currentBooking = await bookingRepo.GetBookingByIdAsync(booking.Id, stoppingToken);
 
                     if (currentBooking != null && currentBooking.Status == BookingStatus.Pending)
                     {
                         currentBooking.Reject();
-                        await dbContext.SaveChangesAsync(stoppingToken);
+                        await bookingRepo.SaveChangesAsync(stoppingToken);
                     }
                 }
                 catch (Exception innerEx)
