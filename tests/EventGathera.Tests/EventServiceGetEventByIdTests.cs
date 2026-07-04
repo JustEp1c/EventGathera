@@ -1,10 +1,10 @@
-﻿using EventGathera.Api.DataAccess;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Exceptions;
-using EventGathera.Api.Repositories.Implementations;
-using EventGathera.Api.Repositories.Interfaces;
-using EventGathera.Api.Services.Implementations;
-using EventGathera.Api.Services.Interfaces;
+﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Application.Services.Implementations;
+using EventGathera.Application.Services.Interfaces;
+using EventGathera.Domain;
+using EventGathera.Domain.Exceptions;
+using EventGathera.Infrastructure.DataAccess;
+using EventGathera.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 

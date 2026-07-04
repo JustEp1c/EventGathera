@@ -1,0 +1,78 @@
+﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Application.Services.Interfaces;
+using EventGathera.Domain;
+using EventGathera.Domain.Exceptions;
+
+namespace EventGathera.Application.Services.Implementations;
+
+/// <inheritdoc/>
+public class BookingService : IBookingService
+{
+    private readonly SemaphoreSlim BookingLock = new(1, 1);
+
+    private readonly IBookingRepository _bookingRepository;
+
+    private readonly IEventRepository _eventRepository;
+
+    public BookingService(IBookingRepository bookingRepository, IEventRepository eventRepository)
+    {
+        _bookingRepository = bookingRepository;
+        _eventRepository = eventRepository;
+    }
+
+    /// <inheritdoc/>
+    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        await BookingLock.WaitAsync(ct);
+
+        try
+        {
+            var foundEvent = await _eventRepository.GetEventByIdAsync(eventId);
+
+            if (foundEvent is null)
+            {
+                throw new ResourceNotFoundException($"Событие с ID {eventId} не найдено", eventId);
+            }
+
+
+            if (!foundEvent.TryReserveSeats())
+            {
+
+                throw new NoAvailableSeatsException("Нет свободных мест на это событие");
+
+            }
+
+            var newBooking = new Booking(
+                foundEvent.Id
+            );
+
+            await _bookingRepository.AddBookingAsync(newBooking, ct);
+
+            await _bookingRepository.SaveChangesAsync(ct);
+
+            return newBooking;
+
+        }
+        finally 
+        { 
+            BookingLock.Release(); 
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var foundBooking = await _bookingRepository.GetBookingByIdAsync(bookingId, ct);
+
+        if (foundBooking is null)
+        {
+            throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
+        }
+
+        return foundBooking;
+    }
+}
