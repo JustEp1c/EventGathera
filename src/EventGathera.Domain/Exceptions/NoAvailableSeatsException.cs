@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Presentation.Exceptions
+﻿namespace EventGathera.Domain.Exceptions
 {
     /// <summary>
     /// Исключение отсутствия свободных мест на событии

@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Presentation.Exceptions;
+﻿namespace EventGathera.Domain.Exceptions;
 
 /// <summary>
 /// Тип исключения для ненайденного ресурса

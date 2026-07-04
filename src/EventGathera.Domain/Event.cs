@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Presentation.Domain;
+﻿namespace EventGathera.Domain;
 
 
 /// <summary>

@@ -20,4 +20,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\EventGathera.Application\EventGathera.Application.csproj" />
+    <ProjectReference Include="..\EventGathera.Infrastructure\EventGathera.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
