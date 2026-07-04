@@ -16,6 +16,89 @@
 - PostgreSQL 16 или выше
 - IDE или редактор кода
 
+## Структура проекта
+
+Проект построен на основе чистой архитектуры (Clean Architecture) с разделением на четыре основных слоя:
+
+```text
+EventGathera/
+├── src/
+│   ├── EventGathera.Domain/          # Доменный слой
+│   ├── EventGathera.Application/     # Слой приложения
+│   ├── EventGathera.Infrastructure/  # Инфраструктурный слой
+│   └── EventGathera.Presentation/    # Слой представления
+├── tests/
+│   ├── EventGathera.Tests/           # Модульные тесты
+│   └── EventGathera.IntegrationTests/# Интеграционные тесты
+└── README.md
+```
+
+### Описание слоев
+
+1. Domain (EventGathera.Domain)
+Назначение: Содержит бизнес-сущности и правила предметной области.
+
+Содержит:
+
+Доменные сущности (Entity) - например, Event, Booking
+
+Перечисления (Enum) - статусы, типы и т.д.
+
+Доменные исключения - бизнес-правила, например:
+
+ResourceNotFoundException - ресурс не найден
+
+NoAvailableSeatsException - нет свободных мест
+
+2. Application (EventGathera.Application)
+Назначение: Содержит бизнес-логику приложения и Use Cases (варианты использования).
+
+Содержит:
+
+Интерфейсы сервисов (IEventService, IBookingService) - описывают Use Cases
+
+Реализации сервисов (EventService, BookingService) - бизнес-логика
+
+DTO (Data Transfer Objects) - для передачи данных между слоями:
+
+Запросы: EventRequest, EventQueryParams
+
+Ответы: EventResponse, PaginatedResult<T>
+
+Интерфейсы репозиториев (IEventRepository, IBookingRepository) - порты для доступа к данным
+
+Интерфейсы внешних сервисов - абстракции для внешних систем
+
+Валидация - через IValidatableObject или FluentValidation
+
+3. Infrastructure (EventGathera.Infrastructure)
+Назначение: Реализует технические аспекты и адаптеры к внешним системам.
+
+Содержит:
+
+Реализации репозиториев - работа с базой данных через EF Core
+
+DbContext и конфигурации - маппинг сущностей (EventConfiguration, BookingConfiguration)
+
+Миграции - управление схемой базы данных
+
+Реализации внешних сервисов - например, email-сервисы, API клиенты
+
+Фоновые сервисы - фоновые задачи (BackgroundService)
+
+4. Presentation (EventGathera.Presentation)
+Назначение: Точка входа в приложение, взаимодействие с пользователем через HTTP API.
+
+Содержит:
+
+Контроллеры - обработка HTTP запросов
+
+Глобальная обработка ошибок - маппинг доменных исключений в HTTP статусы
+
+Swagger/OpenAPI - документация API
+
+Composition Root - настройка DI контейнера в Program.cs
+
 ## Инструкция для запуска проекта
 
 1. Склонируйте репозиторий:
@@ -38,7 +121,7 @@ dotnet restore
 4. Запустите приложение:
 
 ```bash
-dotnet run --project .\src\EventGathera.Api\
+dotnet run --project .\src\EventGathera.Presentation\
 ```
 
 После запуска в консоли будет отображён адрес приложения:
@@ -348,7 +431,7 @@ docker-compose up -d
 После внесения изменений в модель данных (добавление/изменение/удаление сущностей) необходимо создать новую миграцию:
 
 ```bash
-dotnet ef migrations add <Название_миграции> --project ./src/EventGathera.Api
+dotnet ef migrations add <Название_миграции> --project ./src/EventGathera.Infrastructure --startup-project ./src/EventGathera.Presentation
 ```
 
 #### Применение миграций к базе данных
@@ -356,7 +439,7 @@ dotnet ef migrations add <Название_миграции> --project ./src/Eve
 Для применения всех ожидающих миграций к базе данных(необязательно, так как при запуске приложения срабатывает автоматический мигратор):
 
 ```bash
-dotnet ef database update --project ./src/EventGathera.Api
+dotnet ef database update --project ./src/EventGathera.Infrastructure --startup-project ./src/EventGathera.Presentation
 ```
 
 #### Откат к предыдущей миграции
@@ -364,7 +447,7 @@ dotnet ef database update --project ./src/EventGathera.Api
 Для отката к конкретной миграции:
 
 ```bash
-dotnet ef database update <Название_предыдущей_миграции> --project ./src/EventGathera.Api
+dotnet ef database update <Название_предыдущей_миграции> --project ./src/EventGathera.Infrastructure --startup-project ./src/EventGathera.Presentation
 ```
 
 #### Удаление последней миграции
@@ -372,7 +455,7 @@ dotnet ef database update <Название_предыдущей_миграци�
 Если миграция создана ошибочно и не была применена:
 
 ```bash
-dotnet ef migrations remove --project ./src/EventGathera.Api
+dotnet ef migrations remove --project ./src/EventGathera.Infrastructure --startup-project ./src/EventGathera.Presentation
 ```
 
 #### Просмотр списка миграций
@@ -380,7 +463,7 @@ dotnet ef migrations remove --project ./src/EventGathera.Api
 Для просмотра всех созданных миграций:
 
 ```bash
-dotnet ef migrations list --project ./src/EventGathera.Api
+dotnet ef migrations list --project ./src/EventGathera.Infrastructure --startup-project ./src/EventGathera.Presentation
 ```
 
 В проекте используются InMemory-провайдер Entity Framework Core для тестирования. Это позволяет запускать тесты без необходимости подключения к реальной базе данных.
