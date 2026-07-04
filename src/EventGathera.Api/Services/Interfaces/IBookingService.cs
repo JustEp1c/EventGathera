@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Domain;
+﻿using EventGathera.Presentation.Domain;
 
-namespace EventGathera.Api.Services.Interfaces;
+namespace EventGathera.Presentation.Services.Interfaces;
 
 /// <summary>
 /// Сервис для управления бронированиями

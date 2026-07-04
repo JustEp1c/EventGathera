@@ -1,14 +1,12 @@
-﻿using EventGathera.Api.Contracts.Enums;
-using EventGathera.Api.DataAccess;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Exceptions;
-using EventGathera.Api.Repositories.Implementations;
-using EventGathera.Api.Repositories.Interfaces;
-using EventGathera.Api.Services.Implementations;
-using EventGathera.Api.Services.Interfaces;
+﻿using EventGathera.Presentation.Contracts.Enums;
+using EventGathera.Presentation.DataAccess;
+using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Repositories.Implementations;
+using EventGathera.Presentation.Repositories.Interfaces;
+using EventGathera.Presentation.Services.Implementations;
+using EventGathera.Presentation.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Concurrent;
 
 namespace EventGathera.Tests;
 
@@ -16,7 +14,6 @@ public class BookingStatusAndSeatsTests
 {
     private readonly AppDbContext _dbContext;
     private readonly IBookingService _bookingService;
-    private readonly IEventService _eventService;
     private readonly IServiceProvider _serviceProvider;
     private readonly string _dbName;
     private readonly Guid _existingEventId;
@@ -40,7 +37,6 @@ public class BookingStatusAndSeatsTests
         _serviceProvider = services.BuildServiceProvider();
 
         _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
-        _eventService = _serviceProvider.GetRequiredService<IEventService>();
         _bookingService = _serviceProvider.GetRequiredService<IBookingService>();
 
         _existingEventId = Guid.NewGuid();

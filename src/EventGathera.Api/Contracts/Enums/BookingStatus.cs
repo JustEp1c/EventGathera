@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Api.Contracts.Enums;
+﻿namespace EventGathera.Presentation.Contracts.Enums;
 
 /// <summary>
 /// Статус бронирования

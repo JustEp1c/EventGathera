@@ -1,14 +1,10 @@
-﻿using EventGathera.Api.Constants;
-using EventGathera.Api.Contracts.Enums;
-using EventGathera.Api.DataAccess;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Exceptions;
-using EventGathera.Api.Repositories.Interfaces;
-using EventGathera.Api.Services.Implementations;
-using EventGathera.Api.Services.Interfaces;
+﻿using EventGathera.Presentation.Constants;
+using EventGathera.Presentation.Contracts.Enums;
+using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Api.BackgroundServices;
+namespace EventGathera.Presentation.BackgroundServices;
 
 /// <summary>
 /// Фоновый сервис для обработки бронирований

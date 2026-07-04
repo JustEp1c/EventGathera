@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Api.Exceptions;
+﻿namespace EventGathera.Presentation.Exceptions;
 
 /// <summary>
 /// Тип исключения для ненайденного ресурса

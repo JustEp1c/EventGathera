@@ -1,10 +1,8 @@
-﻿using EventGathera.Api.Domain;
-using EventGathera.Api.Services.Implementations;
-using EventGathera.Api.Services.Interfaces;
-using Microsoft.AspNetCore.Http;
+﻿using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EventGathera.Api.Controllers
+namespace EventGathera.Presentation.Controllers
 {
     [Route("bookings")]
     [ApiController]

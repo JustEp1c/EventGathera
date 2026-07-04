@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Contracts.Enums;
+﻿using EventGathera.Presentation.Contracts.Enums;
 
-namespace EventGathera.Api.Domain;
+namespace EventGathera.Presentation.Domain;
 
 /// <summary>
 /// Доменная сущность Booking (бронь)

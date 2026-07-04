@@ -1,8 +1,8 @@
-﻿using EventGathera.Api.Exceptions;
+﻿using EventGathera.Presentation.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace EventGathera.Api.Extensions.Middleware
+namespace EventGathera.Presentation.Extensions.Middleware
 {
     /// <summary>
     /// Middleware для перехвата исключений

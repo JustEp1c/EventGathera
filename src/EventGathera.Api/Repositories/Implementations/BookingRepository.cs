@@ -1,9 +1,9 @@
-﻿using EventGathera.Api.DataAccess;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Repositories.Interfaces;
+﻿using EventGathera.Presentation.DataAccess;
+using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Api.Repositories.Implementations;
+namespace EventGathera.Presentation.Repositories.Implementations;
 
 /// <inheritdoc/>
 public class BookingRepository : IBookingRepository

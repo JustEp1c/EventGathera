@@ -1,7 +1,7 @@
-﻿using EventGathera.Api.Domain;
+﻿using EventGathera.Presentation.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Api.DataAccess;
+namespace EventGathera.Presentation.DataAccess;
 
 public sealed class AppDbContext : DbContext
 {

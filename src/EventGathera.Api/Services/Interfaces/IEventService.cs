@@ -1,8 +1,8 @@
-﻿using EventGathera.Api.Contracts.DTO.Requests;
-using EventGathera.Api.Contracts.DTO.Responses;
-using EventGathera.Api.Domain;
+﻿using EventGathera.Presentation.Contracts.DTO.Requests;
+using EventGathera.Presentation.Contracts.DTO.Responses;
+using EventGathera.Presentation.Domain;
 
-namespace EventGathera.Api.Services.Interfaces;
+namespace EventGathera.Presentation.Services.Interfaces;
 
 /// <summary>
 /// Сервис для управления событиями

@@ -1,6 +1,6 @@
-﻿using EventGathera.Api.Domain;
+﻿using EventGathera.Presentation.Domain;
 
-namespace EventGathera.Api.Repositories.Interfaces;
+namespace EventGathera.Presentation.Repositories.Interfaces;
 
 /// <summary>
 /// Репозиторий для работы с данными Booking

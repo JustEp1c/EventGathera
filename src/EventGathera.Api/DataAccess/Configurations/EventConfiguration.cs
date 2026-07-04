@@ -1,8 +1,8 @@
-﻿using EventGathera.Api.Domain;
+﻿using EventGathera.Presentation.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EventGathera.Api.DataAccess.Configurations;
+namespace EventGathera.Presentation.DataAccess.Configurations;
 
 public class EventConfiguration : IEntityTypeConfiguration<Event>
 {

@@ -1,7 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/EventGathera.Api/EventGathera.Api.csproj" />
+    <Project Path="src/EventGathera.Api/EventGathera.Presentation.csproj" />
   </Folder>
+  <Project Path="src/EventGathera.Domain/EventGathera.Domain.csproj" Id="111596cc-7861-4b61-b251-d2acd66d44be" />
   <Project Path="tests/EventGathera.IntegrationTests/EventGathera.IntegrationTests.csproj" Id="e9d8b886-bc78-4c2a-80b1-e8f72c641a79">
     <Build Solution="Debug|*" Project="false" />
   </Project>

@@ -1,7 +1,7 @@
-﻿using EventGathera.Api.Contracts.Enums;
-using EventGathera.Api.DataAccess;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Repositories.Implementations;
+﻿using EventGathera.Presentation.Contracts.Enums;
+using EventGathera.Presentation.DataAccess;
+using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;

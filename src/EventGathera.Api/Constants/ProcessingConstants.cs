@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Api.Constants;
+﻿namespace EventGathera.Presentation.Constants;
 
 /// <summary>
 /// Константы обработки

@@ -1,6 +1,6 @@
-using EventGathera.Api.DataAccess;
-using EventGathera.Api.Extensions;
-using EventGathera.Api.Extensions.Middleware;
+using EventGathera.Presentation.DataAccess;
+using EventGathera.Presentation.Extensions;
+using EventGathera.Presentation.Extensions.Middleware;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);

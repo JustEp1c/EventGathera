@@ -1,11 +1,9 @@
-﻿using EventGathera.Api.DataAccess;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Exceptions;
-using EventGathera.Api.Repositories.Interfaces;
-using EventGathera.Api.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+﻿using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Exceptions;
+using EventGathera.Presentation.Repositories.Interfaces;
+using EventGathera.Presentation.Services.Interfaces;
 
-namespace EventGathera.Api.Services.Implementations;
+namespace EventGathera.Presentation.Services.Implementations;
 
 /// <inheritdoc/>
 public class BookingService : IBookingService

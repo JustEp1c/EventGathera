@@ -1,12 +1,12 @@
-﻿using EventGathera.Api.Contracts.DTO.Requests;
-using EventGathera.Api.Contracts.DTO.Responses;
-using EventGathera.Api.Domain;
-using EventGathera.Api.Exceptions;
-using EventGathera.Api.Repositories.Interfaces;
-using EventGathera.Api.Services.Interfaces;
+﻿using EventGathera.Presentation.Contracts.DTO.Requests;
+using EventGathera.Presentation.Contracts.DTO.Responses;
+using EventGathera.Presentation.Domain;
+using EventGathera.Presentation.Exceptions;
+using EventGathera.Presentation.Repositories.Interfaces;
+using EventGathera.Presentation.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Api.Services.Implementations;
+namespace EventGathera.Presentation.Services.Implementations;
 
 
 /// <inheritdoc/>

@@ -1,9 +1,9 @@
-﻿using EventGathera.Api.Contracts.DTO.Requests;
-using EventGathera.Api.DataAccess;
-using EventGathera.Api.Repositories.Implementations;
-using EventGathera.Api.Repositories.Interfaces;
-using EventGathera.Api.Services.Implementations;
-using EventGathera.Api.Services.Interfaces;
+﻿using EventGathera.Presentation.Contracts.DTO.Requests;
+using EventGathera.Presentation.DataAccess;
+using EventGathera.Presentation.Repositories.Implementations;
+using EventGathera.Presentation.Repositories.Interfaces;
+using EventGathera.Presentation.Services.Implementations;
+using EventGathera.Presentation.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.ComponentModel.DataAnnotations;
