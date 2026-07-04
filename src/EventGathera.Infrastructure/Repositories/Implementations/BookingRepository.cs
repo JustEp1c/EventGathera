@@ -3,7 +3,7 @@ using EventGathera.Presentation.Domain;
 using EventGathera.Presentation.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Presentation.Repositories.Implementations;
+namespace EventGathera.Infrastructure.Repositories.Implementations;
 
 /// <inheritdoc/>
 public class BookingRepository : IBookingRepository

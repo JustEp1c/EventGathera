@@ -6,7 +6,7 @@ using EventGathera.Presentation.Repositories.Interfaces;
 using EventGathera.Presentation.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Presentation.Services.Implementations;
+namespace EventGathera.Application.Services.Implementations;
 
 
 /// <inheritdoc/>

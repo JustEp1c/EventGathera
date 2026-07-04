@@ -3,7 +3,7 @@ using EventGathera.Presentation.Exceptions;
 using EventGathera.Presentation.Repositories.Interfaces;
 using EventGathera.Presentation.Services.Interfaces;
 
-namespace EventGathera.Presentation.Services.Implementations;
+namespace EventGathera.Application.Services.Implementations;
 
 /// <inheritdoc/>
 public class BookingService : IBookingService

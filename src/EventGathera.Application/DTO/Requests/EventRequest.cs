@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace EventGathera.Presentation.Contracts.DTO.Requests;
+namespace EventGathera.Application.DTO.Requests;
 
 
 /// <summary>

@@ -1,4 +1,4 @@
-﻿namespace EventGathera.Presentation.Contracts.DTO.Responses
+﻿namespace EventGathera.Application.DTO.Responses
 {
     /// <summary>
     /// Пагинированный список

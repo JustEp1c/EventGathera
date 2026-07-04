@@ -4,7 +4,7 @@ using EventGathera.Presentation.Domain;
 using EventGathera.Presentation.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventGathera.Presentation.BackgroundServices;
+namespace EventGathera.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// Фоновый сервис для обработки бронирований

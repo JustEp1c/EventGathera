@@ -2,7 +2,7 @@
 using EventGathera.Presentation.Contracts.DTO.Responses;
 using EventGathera.Presentation.Domain;
 
-namespace EventGathera.Presentation.Services.Interfaces;
+namespace EventGathera.Application.Services.Interfaces;
 
 /// <summary>
 /// Сервис для управления событиями
