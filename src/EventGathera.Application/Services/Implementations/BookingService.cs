@@ -1,7 +1,7 @@
-﻿using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.Exceptions;
-using EventGathera.Presentation.Repositories.Interfaces;
-using EventGathera.Presentation.Services.Interfaces;
+﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Application.Services.Interfaces;
+using EventGathera.Domain;
+using EventGathera.Domain.Exceptions;
 
 namespace EventGathera.Application.Services.Implementations;
 

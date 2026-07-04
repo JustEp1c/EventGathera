@@ -1,7 +1,7 @@
-﻿using EventGathera.Presentation.Contracts.DTO.Requests;
-using EventGathera.Presentation.Contracts.DTO.Responses;
-using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.Services.Interfaces;
+﻿using EventGathera.Application.DTO.Requests;
+using EventGathera.Application.DTO.Responses;
+using EventGathera.Application.Services.Interfaces;
+using EventGathera.Domain;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventGathera.Presentation.Controllers

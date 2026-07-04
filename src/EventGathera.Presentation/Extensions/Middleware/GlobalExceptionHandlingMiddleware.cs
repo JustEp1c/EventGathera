@@ -1,4 +1,4 @@
-﻿using EventGathera.Presentation.Exceptions;
+﻿using EventGathera.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 

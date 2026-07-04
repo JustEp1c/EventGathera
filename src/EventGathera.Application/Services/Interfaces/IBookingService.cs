@@ -1,4 +1,4 @@
-﻿using EventGathera.Presentation.Domain;
+﻿using EventGathera.Domain;
 
 namespace EventGathera.Application.Services.Interfaces;
 

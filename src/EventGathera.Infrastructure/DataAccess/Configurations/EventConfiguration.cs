@@ -1,4 +1,4 @@
-﻿using EventGathera.Presentation.Domain;
+﻿using EventGathera.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

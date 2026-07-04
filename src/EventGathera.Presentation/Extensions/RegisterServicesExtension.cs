@@ -1,10 +1,5 @@
-﻿using EventGathera.Presentation.BackgroundServices;
-using EventGathera.Presentation.DataAccess;
-using EventGathera.Presentation.Repositories.Implementations;
-using EventGathera.Presentation.Repositories.Interfaces;
-using EventGathera.Presentation.Services.Implementations;
-using EventGathera.Presentation.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+﻿using EventGathera.Application.Extensions;
+using EventGathera.Infrastructure.Extensions;
 using System.Reflection;
 
 namespace EventGathera.Presentation.Extensions;
@@ -23,23 +18,16 @@ public static class RegisterServicesExtension
     /// <returns></returns>
     public static IServiceCollection RegisterServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IEventService, EventService>();
-        services.AddScoped<IBookingService, BookingService>();
+        services.AddApplication();
 
-        services.AddScoped<IEventRepository, EventRepository>();
-        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddInfrastructure(configuration);
 
-        services.AddHostedService<BookingProcessingService>();
-
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(
-            configuration.GetConnectionString("DefaultConnection"))
-            .UseSnakeCaseNamingConvention());
+        services.AddPresentation();
 
         return services;
     }
 
-    public static IServiceCollection RegisterPresentation(this IServiceCollection services)
+    private static IServiceCollection AddPresentation(this IServiceCollection services)
     {
         services.AddControllers();
         services.AddEndpointsApiExplorer();

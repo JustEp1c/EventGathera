@@ -1,6 +1,6 @@
-﻿using EventGathera.Presentation.DataAccess;
-using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.Repositories.Interfaces;
+﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Domain;
+using EventGathera.Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventGathera.Infrastructure.Repositories.Implementations;

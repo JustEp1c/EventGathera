@@ -1,8 +1,11 @@
-﻿using EventGathera.Presentation.Constants;
-using EventGathera.Presentation.Contracts.Enums;
-using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.Repositories.Interfaces;
+﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Domain;
+using EventGathera.Domain.Enums;
+using EventGathera.Infrastructure.Constants;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace EventGathera.Infrastructure.BackgroundServices;
 

@@ -1,11 +1,10 @@
-using EventGathera.Presentation.DataAccess;
+using EventGathera.Infrastructure.DataAccess;
 using EventGathera.Presentation.Extensions;
 using EventGathera.Presentation.Extensions.Middleware;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.RegisterPresentation();
 builder.Services.RegisterServices(builder.Configuration);
 
 var app = builder.Build();

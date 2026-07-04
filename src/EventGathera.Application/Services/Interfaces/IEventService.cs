@@ -1,6 +1,6 @@
-﻿using EventGathera.Presentation.Contracts.DTO.Requests;
-using EventGathera.Presentation.Contracts.DTO.Responses;
-using EventGathera.Presentation.Domain;
+﻿using EventGathera.Application.DTO.Requests;
+using EventGathera.Application.DTO.Responses;
+using EventGathera.Domain;
 
 namespace EventGathera.Application.Services.Interfaces;
 

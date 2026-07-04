@@ -1,5 +1,5 @@
-﻿using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.Services.Interfaces;
+﻿using EventGathera.Application.Services.Interfaces;
+using EventGathera.Domain;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventGathera.Presentation.Controllers
