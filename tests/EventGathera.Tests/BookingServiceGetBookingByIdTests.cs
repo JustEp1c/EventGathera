@@ -1,10 +1,10 @@
-﻿using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.DataAccess;
-using EventGathera.Presentation.Exceptions;
-using EventGathera.Presentation.Repositories.Implementations;
-using EventGathera.Presentation.Repositories.Interfaces;
-using EventGathera.Presentation.Services.Implementations;
-using EventGathera.Presentation.Services.Interfaces;
+﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Application.Services.Implementations;
+using EventGathera.Application.Services.Interfaces;
+using EventGathera.Domain;
+using EventGathera.Domain.Exceptions;
+using EventGathera.Infrastructure.DataAccess;
+using EventGathera.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 namespace EventGathera.Tests;

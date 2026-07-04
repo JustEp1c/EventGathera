@@ -1,6 +1,6 @@
-﻿using EventGathera.Presentation.DataAccess;
-using EventGathera.Presentation.Domain;
-using EventGathera.Presentation.Repositories.Implementations;
+﻿using EventGathera.Domain;
+using EventGathera.Infrastructure.DataAccess;
+using EventGathera.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;

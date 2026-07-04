@@ -21,7 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EventGathera.Api\EventGathera.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\EventGathera.Application\EventGathera.Application.csproj" />
+    <ProjectReference Include="..\..\src\EventGathera.Infrastructure\EventGathera.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
