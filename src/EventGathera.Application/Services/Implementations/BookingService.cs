@@ -21,7 +21,7 @@ public class BookingService : IBookingService
     }
 
     /// <inheritdoc/>
-    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -45,7 +45,8 @@ public class BookingService : IBookingService
             }
 
             var newBooking = new Booking(
-                foundEvent.Id
+                foundEvent.Id,
+                userId
             );
 
             await _bookingRepository.AddBookingAsync(newBooking, ct);

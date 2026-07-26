@@ -18,6 +18,11 @@ public class Booking
     public Guid EventId { get; init; }
 
     /// <summary>
+    /// Пользователь, создавший бронь
+    /// </summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>
     /// Текущий статус брони
     /// </summary>
     public BookingStatus Status { get; set; }
@@ -37,15 +42,21 @@ public class Booking
     /// </summary>
     public Event Event { get; set; }
 
+    /// <summary>
+    /// Навигационное свойство для связи с пользователем
+    /// </summary>
+    public User User { get; set; }
+
     private Booking()
     {
 
     }
 
-    public Booking(Guid eventId)
+    public Booking(Guid eventId, Guid userId)
     {
         Id = Guid.NewGuid();
         EventId = eventId;
+        UserId = userId;
         CreatedAt = DateTime.UtcNow;
         Status = BookingStatus.Pending;
     }
@@ -65,6 +76,15 @@ public class Booking
     public void Reject()
     {
         Status = BookingStatus.Rejected;
+        ProcessedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Отмена брони
+    /// </summary>
+    public void Cancel()
+    {
+        Status = BookingStatus.Cancel;
         ProcessedAt = DateTime.UtcNow;
     }
 }
