@@ -18,6 +18,8 @@ public class BookingServiceGetBookingByIdTests
     private readonly IServiceProvider _serviceProvider;
     private readonly string _dbName;
 
+    private readonly Guid _testUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     public BookingServiceGetBookingByIdTests()
     {
         _dbName = Guid.NewGuid().ToString();
@@ -55,7 +57,8 @@ public class BookingServiceGetBookingByIdTests
         _existingBookingId = Guid.NewGuid();
 
         var testBooking = new Booking(
-            _existingEventId
+            _existingEventId,
+            _testUserId
         )
         {
             Id = _existingBookingId

@@ -33,6 +33,7 @@ public class BookingService : IBookingService
         if (role == Roles.Admin.ToString() || foundBooking.UserId == userId)
         {
             foundBooking.Cancel();
+            foundBooking.Event.ReleaseSeats();
         }
         else
         {
