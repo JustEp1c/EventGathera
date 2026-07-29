@@ -20,7 +20,7 @@ public class Booking
     /// <summary>
     /// Пользователь, создавший бронь
     /// </summary>
-    public Guid UserId { get; init; }
+    public Guid? UserId { get; init; }
 
     /// <summary>
     /// Текущий статус брони

@@ -26,4 +26,22 @@ public class User
     /// Роль
     /// </summary>
     public Roles Role { get; set; }
+
+    /// <summary>
+    /// Навигационное свойство для связи с бронированиями
+    /// </summary>
+    public List<Booking> Bookings { get; set; }
+
+    private User()
+    {
+
+    }
+
+    public User(string login, string passwordHash, Roles role)
+    {
+        Id = Guid.NewGuid();
+        Login = login;
+        PasswordHash = passwordHash;
+        Role = role;
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using EventGathera.Application.Repositories.Interfaces;
 using EventGathera.Domain;
+using EventGathera.Domain.Enums;
 using EventGathera.Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,5 +34,11 @@ public class BookingRepository : IBookingRepository
     public async Task SaveChangesAsync(CancellationToken ct = default)
     {
         await _appDbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> GetActiveBookingsCountByUserAsync(Guid userId, CancellationToken ct)
+    {
+        return await _appDbContext.Bookings
+            .CountAsync(b => b.UserId == userId && (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed), ct);
     }
 }

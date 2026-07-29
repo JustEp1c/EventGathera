@@ -1,4 +1,5 @@
 ﻿using EventGathera.Domain;
+using EventGathera.Domain.Enums;
 
 namespace EventGathera.Application.Services.Interfaces;
 
@@ -23,4 +24,14 @@ public interface IBookingService
     /// <param name="ct">Токен отмены</param>
     /// <returns></returns>
     Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Отменить бронь
+    /// </summary>
+    /// <param name="bookingId">Id брони</param>
+    /// <param name="userId">Id пользователя</param>
+    /// <param name="role">Роль</param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default);
 }

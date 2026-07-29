@@ -3,6 +3,7 @@ using EventGathera.Application.DTO.Responses;
 using EventGathera.Application.Services.Interfaces;
 using EventGathera.Domain;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EventGathera.Presentation.Controllers
 {
@@ -96,9 +97,10 @@ namespace EventGathera.Presentation.Controllers
         /// <returns>202, если бронь создана и отправлена на обработку</returns>
         [HttpPost("{id}/book")]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<IActionResult> CreateBooking(Guid id, CancellationToken ct)
+        public async Task<IActionResult> CreateBooking(Guid id, Guid userId, CancellationToken ct)
         {
-            var result = await _bookingService.CreateBookingAsync(id, ct);
+
+            var result = await _bookingService.CreateBookingAsync(id, userId, ct);
 
             return AcceptedAtAction(nameof(BookingsController.GetBookingById), 
                 "Bookings", 
