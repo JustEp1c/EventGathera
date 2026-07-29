@@ -21,11 +21,16 @@ public class BookingService : IBookingService
         _eventRepository = eventRepository;
     }
 
-    public async Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default)
+    public async Task CancelBookingAsync(Guid bookingId, Guid userId, string role, CancellationToken ct = default)
     {
         var foundBooking = await GetBookingByIdAsync(bookingId, ct);
 
-        if (role == Roles.Admin || foundBooking.UserId == userId)
+        if (foundBooking.Status == BookingStatus.Cancel)
+        {
+            throw new InvalidOperationException($"Бронь с ID {bookingId} уже отменена");
+        }
+
+        if (role == Roles.Admin.ToString() || foundBooking.UserId == userId)
         {
             foundBooking.Cancel();
         }

@@ -20,6 +20,8 @@ public class UserRepository : IUserRepository
     public async Task AddUserAsync(User newUser, CancellationToken ct = default)
     {
         await _appDbContext.AddAsync(newUser, ct);
+
+        await _appDbContext.SaveChangesAsync(ct);
     }
 
     public async Task<User?> GetUserByLoginAsync(string login, CancellationToken ct = default)

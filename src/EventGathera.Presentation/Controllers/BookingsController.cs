@@ -1,6 +1,8 @@
 ﻿using EventGathera.Application.Services.Interfaces;
 using EventGathera.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EventGathera.Presentation.Controllers
 {
@@ -22,12 +24,36 @@ namespace EventGathera.Presentation.Controllers
         /// <param name="bookingId">Уникальный идентификатор брони</param>
         /// <param name="ct">Токен отмены</param>
         /// <returns>200, если бронь найдена</returns>
+        [Authorize]
         [HttpGet("{bookingId}")]
         public async Task<ActionResult<Booking>> GetBookingById(Guid bookingId, CancellationToken ct)
         {
             var result = await _bookingService.GetBookingByIdAsync(bookingId, ct);
 
             return result;
+        }
+
+        /// <summary>
+        /// Отменить бронь
+        /// </summary>
+        /// <param name="bookingId">Id брони</param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPut("cancel/{bookingId}")]
+        public async Task<IActionResult> CancelBookingById(Guid bookingId, CancellationToken ct)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var userRoleClaim = User.FindFirst(ClaimTypes.Role);
+
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized("Не найден ID пользователя в токене");
+            }
+
+            await _bookingService.CancelBookingAsync(bookingId, userId, userRoleClaim.Value, ct);
+
+            return NoContent();
         }
     }
 }

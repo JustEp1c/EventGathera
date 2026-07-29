@@ -35,7 +35,7 @@ public class UserService : IUserService
 
         if (!_passwordHasher.VerifyPassword(password, foundUser.PasswordHash))
         {
-            throw new UnauthorizedAccessException("Неверный пароль");
+            throw new ResourceNotFoundException("Неверный пароль");
         }
 
         return _jwtTokenGenerator.GenerateToken(foundUser.Id, foundUser.Login, foundUser.Role);

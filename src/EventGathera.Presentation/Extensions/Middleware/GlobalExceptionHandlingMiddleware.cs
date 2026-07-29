@@ -67,6 +67,9 @@ namespace EventGathera.Presentation.Extensions.Middleware
                 ResourceNotFoundException ke => StatusCodes.Status404NotFound,
                 OperationCanceledException oe => StatusCodes.Status204NoContent,
                 NoAvailableSeatsException ns => StatusCodes.Status409Conflict,
+                ForbiddenOperationException fo => StatusCodes.Status403Forbidden,
+                ExpiredEventBookingException ee => StatusCodes.Status400BadRequest,
+                ExceedingActiveBookingLimitException ea => StatusCodes.Status409Conflict,
                 _ => StatusCodes.Status500InternalServerError
             };
     }

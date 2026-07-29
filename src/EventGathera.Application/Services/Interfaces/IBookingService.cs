@@ -33,5 +33,5 @@ public interface IBookingService
     /// <param name="role">Роль</param>
     /// <param name="ct"></param>
     /// <returns></returns>
-    Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default);
+    Task CancelBookingAsync(Guid bookingId, Guid userId, string role, CancellationToken ct = default);
 }
