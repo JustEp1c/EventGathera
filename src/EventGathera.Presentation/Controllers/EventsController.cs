@@ -2,6 +2,7 @@
 using EventGathera.Application.DTO.Responses;
 using EventGathera.Application.Services.Interfaces;
 using EventGathera.Domain;
+using EventGathera.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -19,9 +20,9 @@ namespace EventGathera.Presentation.Controllers
         public EventsController(IEventService eventService, IBookingService bookingService) 
         {
             _eventService = eventService
-                ?? throw new ArgumentNullException(nameof(IEventService));
+                ?? throw new ArgumentNullException(nameof(eventService));
             _bookingService = bookingService 
-                ?? throw new ArgumentNullException(nameof(IBookingService));
+                ?? throw new ArgumentNullException(nameof(bookingService));
         }
 
         /// <summary>
@@ -55,7 +56,7 @@ namespace EventGathera.Presentation.Controllers
         /// </summary>
         /// <param name="request">DTO нового события</param>
         /// <returns>201, если событие создалось</returns>
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = nameof(Roles.Admin))]
         [HttpPost]
         public async Task<IActionResult> CreateEvent([FromBody] EventRequest request)
         {
@@ -70,7 +71,7 @@ namespace EventGathera.Presentation.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <param name="request">DTO обновленного события</param>
         /// <returns>204, если событие обновлено</returns>
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = nameof(Roles.Admin))]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] EventRequest request)
         {
@@ -84,7 +85,7 @@ namespace EventGathera.Presentation.Controllers
         /// </summary>
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>204, если событие удалено</returns>
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = nameof(Roles.Admin))]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(Guid id)
         {

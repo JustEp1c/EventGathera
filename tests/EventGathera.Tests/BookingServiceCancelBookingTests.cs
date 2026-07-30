@@ -70,7 +70,7 @@ public class BookingServiceCancelBookingTests
         Assert.Equal(BookingStatus.Pending, booking.Status);
 
         // Act
-        await _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User.ToString(), ct);
+        await _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User, ct);
 
         // Assert
         // Проверяем статус брони
@@ -113,7 +113,7 @@ public class BookingServiceCancelBookingTests
         Assert.Equal(9, eventBefore.AvailableSeats);
 
         // Act - Админ отменяет бронь
-        await _bookingService.CancelBookingAsync(booking.Id, _adminUserId, Roles.Admin.ToString(), ct);
+        await _bookingService.CancelBookingAsync(booking.Id, _adminUserId, Roles.Admin, ct);
 
         // Assert
         // Проверяем статус брони
@@ -154,7 +154,7 @@ public class BookingServiceCancelBookingTests
         // Act & Assert - Другой пользователь пытается отменить бронь
         var anotherUserId = Guid.NewGuid();
         var exception = await Assert.ThrowsAsync<ForbiddenOperationException>(() =>
-            _bookingService.CancelBookingAsync(booking.Id, anotherUserId, Roles.User.ToString(), ct));
+            _bookingService.CancelBookingAsync(booking.Id, anotherUserId, Roles.User, ct));
 
         Assert.Equal($"Невозможно отменить чужую бронь пользователем с ID {anotherUserId}", exception.Message);
         Assert.Equal(anotherUserId, exception.UserId);
@@ -192,7 +192,7 @@ public class BookingServiceCancelBookingTests
 
         // Создаем и отменяем бронь
         var booking = await _bookingService.CreateBookingAsync(eventEntity.Id, _testUserId, ct);
-        await _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User.ToString(), ct);
+        await _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User, ct);
 
         // Проверяем, что бронь отменена
         var cancelledBooking = await _dbContext.Bookings
@@ -201,7 +201,7 @@ public class BookingServiceCancelBookingTests
 
         // Act & Assert - Пытаемся отменить еще раз
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User.ToString(), ct));
+            _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User, ct));
 
         Assert.Equal($"Бронь с ID {booking.Id} уже отменена", exception.Message);
 
@@ -223,7 +223,7 @@ public class BookingServiceCancelBookingTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
-            _bookingService.CancelBookingAsync(nonExistentBookingId, _testUserId, Roles.User.ToString(), ct));
+            _bookingService.CancelBookingAsync(nonExistentBookingId, _testUserId, Roles.User, ct));
 
         Assert.Equal($"Бронь с ID {nonExistentBookingId} не найдена", exception.Message);
         Assert.Equal(nonExistentBookingId, exception.ResourceId);
@@ -258,7 +258,7 @@ public class BookingServiceCancelBookingTests
         Assert.Equal(0, eventBefore.AvailableSeats);
 
         // Act - Отменяем бронь
-        await _bookingService.CancelBookingAsync(booking.Id, user1Id, Roles.User.ToString(), ct);
+        await _bookingService.CancelBookingAsync(booking.Id, user1Id, Roles.User, ct);
 
         // Проверяем, что место освободилось
         var eventAfterCancel = await _dbContext.Events.FindAsync(eventEntity.Id);
@@ -303,7 +303,7 @@ public class BookingServiceCancelBookingTests
         Assert.Null(booking.ProcessedAt);
 
         // Act
-        await _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User.ToString(), ct);
+        await _bookingService.CancelBookingAsync(booking.Id, _testUserId, Roles.User, ct);
 
         // Assert
         var canceledBooking = await _dbContext.Bookings
@@ -311,6 +311,57 @@ public class BookingServiceCancelBookingTests
         Assert.NotNull(canceledBooking.ProcessedAt);
         Assert.True(canceledBooking.ProcessedAt <= DateTime.UtcNow);
         Assert.True(canceledBooking.ProcessedAt >= DateTime.UtcNow.AddSeconds(-5));
+    }
+
+    /// <summary>
+    /// Тест 8: Проверка персистентности - отмена брони сохраняется в БД
+    /// </summary>
+    [Fact]
+    public async Task CancelBookingAsync_ShouldPersistChangesToDatabase()
+    {
+        // Arrange
+        var ct = CancellationToken.None;
+
+        var eventEntity = new Event(
+            title: "Test Event",
+            startAt: DateTime.UtcNow.AddDays(1),
+            endAt: DateTime.UtcNow.AddDays(2),
+            totalSeats: 10,
+            description: "Test Description"
+        );
+        _dbContext.Events.Add(eventEntity);
+        await _dbContext.SaveChangesAsync(ct);
+
+        var booking = await _bookingService.CreateBookingAsync(eventEntity.Id, _testUserId, ct);
+
+        var bookingId = booking.Id;
+        var eventId = eventEntity.Id;
+
+        // Act
+        await _bookingService.CancelBookingAsync(bookingId, _testUserId, Roles.User, ct);
+
+        // Assert - используем новый контекст
+        await using var verifyContext = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(_dbName)
+                .Options);
+
+        // Проверяем бронь в новом контексте
+        var canceledBooking = await verifyContext.Bookings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == bookingId, ct);
+
+        Assert.NotNull(canceledBooking);
+        Assert.Equal(BookingStatus.Cancel, canceledBooking.Status);
+        Assert.NotNull(canceledBooking.ProcessedAt);
+
+        // Проверяем событие в новом контексте
+        var updatedEvent = await verifyContext.Events
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == eventId, ct);
+
+        Assert.NotNull(updatedEvent);
+        Assert.Equal(10, updatedEvent.AvailableSeats);
     }
 
     public void Dispose()

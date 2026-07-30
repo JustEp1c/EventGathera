@@ -3,6 +3,7 @@ using EventGathera.Application.Services.Interfaces;
 using EventGathera.Domain;
 using EventGathera.Domain.Enums;
 using EventGathera.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace EventGathera.Application.Services.Implementations;
 
@@ -21,19 +22,33 @@ public class BookingService : IBookingService
         _eventRepository = eventRepository;
     }
 
-    public async Task CancelBookingAsync(Guid bookingId, Guid userId, string role, CancellationToken ct = default)
+    public async Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default)
     {
-        var foundBooking = await GetBookingByIdAsync(bookingId, ct);
+        var foundBooking = await _bookingRepository.GetBookingByIdAsync(bookingId, ct);
+
+        if (foundBooking is null)
+        {
+            throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
+        }
 
         if (foundBooking.Status == BookingStatus.Cancel)
         {
             throw new InvalidOperationException($"Бронь с ID {bookingId} уже отменена");
         }
 
-        if (role == Roles.Admin.ToString() || foundBooking.UserId == userId)
+        var eventId = foundBooking.EventId;
+
+        if (foundBooking.Event.StartAt <= DateTime.UtcNow)
+        {
+            throw new ExpiredEventBookingException($"Событие с ID {eventId} уже началось", eventId);
+        }
+
+        if (role == Roles.Admin || foundBooking.UserId == userId)
         {
             foundBooking.Cancel();
             foundBooking.Event.ReleaseSeats();
+
+            await _bookingRepository.SaveChangesAsync(ct);
         }
         else
         {
@@ -96,7 +111,7 @@ public class BookingService : IBookingService
     }
 
     /// <inheritdoc/>
-    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct)
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -105,6 +120,11 @@ public class BookingService : IBookingService
         if (foundBooking is null)
         {
             throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
+        }
+
+        if (role != Roles.Admin && foundBooking.UserId != userId)
+        {
+            throw new ForbiddenOperationException($"Невозможно получить чужую бронь пользователем с ID {userId}", userId);
         }
 
         return foundBooking;

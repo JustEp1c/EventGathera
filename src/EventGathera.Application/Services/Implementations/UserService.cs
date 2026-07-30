@@ -30,12 +30,12 @@ public class UserService : IUserService
 
         if (foundUser == null)
         {
-            throw new ResourceNotFoundException($"Пользователь с логином {login} не найден");
+            throw new AuthenticationException($"Неверный логин или пароль");
         }
 
         if (!_passwordHasher.VerifyPassword(password, foundUser.PasswordHash))
         {
-            throw new ResourceNotFoundException("Неверный пароль");
+            throw new AuthenticationException("Неверный логин или пароль");
         }
 
         return _jwtTokenGenerator.GenerateToken(foundUser.Id, foundUser.Login, foundUser.Role);

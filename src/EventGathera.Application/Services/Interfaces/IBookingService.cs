@@ -21,9 +21,11 @@ public interface IBookingService
     /// Получение брони по идентификатору
     /// </summary>
     /// <param name="bookingId">Id бронирования</param>
+    /// <param name="userId">Id пользователя</param>
+    /// <param name="role">Роль</param>
     /// <param name="ct">Токен отмены</param>
     /// <returns></returns>
-    Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default);
+    Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default);
 
     /// <summary>
     /// Отменить бронь
@@ -33,5 +35,5 @@ public interface IBookingService
     /// <param name="role">Роль</param>
     /// <param name="ct"></param>
     /// <returns></returns>
-    Task CancelBookingAsync(Guid bookingId, Guid userId, string role, CancellationToken ct = default);
+    Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default);
 }

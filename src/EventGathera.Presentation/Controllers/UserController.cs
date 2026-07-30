@@ -13,7 +13,7 @@ public class UserController : ControllerBase
     public UserController(IUserService userService)
     {
         _userService = userService 
-            ?? throw new ArgumentNullException(nameof(IUserService));
+            ?? throw new ArgumentNullException(nameof(userService));
     }
 
     [HttpPost("auth/register")]

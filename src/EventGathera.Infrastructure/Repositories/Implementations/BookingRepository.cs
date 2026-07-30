@@ -28,7 +28,9 @@ public class BookingRepository : IBookingRepository
 
     public async Task<Booking?> GetBookingByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id, cancellationToken: ct);
+        return await _appDbContext.Bookings
+            .Include(b => b.Event)
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken: ct);
     }
 
     public async Task SaveChangesAsync(CancellationToken ct = default)

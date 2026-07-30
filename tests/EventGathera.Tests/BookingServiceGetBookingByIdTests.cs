@@ -54,6 +54,9 @@ public class BookingServiceGetBookingByIdTests
             Id = _existingEventId
         };
 
+        _dbContext.Events.Add(testEvent);
+        _dbContext.SaveChanges();
+
         _existingBookingId = Guid.NewGuid();
 
         var testBooking = new Booking(
@@ -75,7 +78,7 @@ public class BookingServiceGetBookingByIdTests
         var ct = CancellationToken.None;
 
         // Act
-        var result = await _bookingService.GetBookingByIdAsync(_existingBookingId, ct);
+        var result = await _bookingService.GetBookingByIdAsync(_existingBookingId, _testUserId, Domain.Enums.Roles.User, ct);
 
         // Assert
         Assert.NotNull(result);
@@ -93,7 +96,7 @@ public class BookingServiceGetBookingByIdTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
-            _bookingService.GetBookingByIdAsync(nonExistingId, ct));
+            _bookingService.GetBookingByIdAsync(nonExistingId, _testUserId, Domain.Enums.Roles.User, ct));
 
         Assert.Equal($"Бронь с ID {nonExistingId} не найдена", exception.Message);
     }
