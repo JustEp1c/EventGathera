@@ -1,7 +1,10 @@
 ﻿using EventGathera.Application.Repositories.Interfaces;
+using EventGathera.Application.Services.Interfaces;
+using EventGathera.Infrastructure.Authentication;
 using EventGathera.Infrastructure.BackgroundServices;
 using EventGathera.Infrastructure.DataAccess;
 using EventGathera.Infrastructure.Repositories.Implementations;
+using EventGathera.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +46,9 @@ public static class RegisterInfrastructureExtension
     {
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         return services;
     }

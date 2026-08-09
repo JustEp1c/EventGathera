@@ -1,4 +1,5 @@
 ﻿using EventGathera.Domain;
+using EventGathera.Domain.Enums;
 using EventGathera.Infrastructure.DataAccess;
 using EventGathera.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,8 @@ public class EventRepositoryTests : IAsyncLifetime
     .WithUsername("postgres")
     .WithPassword("postgres")
     .Build();
+
+    private readonly Guid _testUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     public async Task InitializeAsync()
     {
@@ -53,6 +56,18 @@ public class EventRepositoryTests : IAsyncLifetime
         await using var context = CreateContext();
         await context.Database.EnsureDeletedAsync();
         await context.Database.MigrateAsync();
+    }
+
+    private async Task<Guid> CreateTestUserAsync(AppDbContext context)
+    {
+        var user = new User(
+            login: $"user_{Guid.NewGuid():N}".Substring(0, 30),
+            passwordHash: "hashedpassword",
+            role: Roles.User
+        );
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user.Id;
     }
 
     [Fact]
@@ -233,6 +248,9 @@ public class EventRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
+
+        var userId = await CreateTestUserAsync(context);
+
         var eventId = Guid.NewGuid();
         var eventEntity = new Event(
             title: "Test Event",
@@ -248,8 +266,8 @@ public class EventRepositoryTests : IAsyncLifetime
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Создаем бронирования
-        var booking1 = new Booking(eventId);
-        var booking2 = new Booking(eventId);
+        var booking1 = new Booking(eventId, userId);
+        var booking2 = new Booking(eventId, userId);
         context.Bookings.AddRange(booking1, booking2);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

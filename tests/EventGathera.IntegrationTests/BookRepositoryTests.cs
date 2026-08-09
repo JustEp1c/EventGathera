@@ -56,6 +56,18 @@ public class BookRepositoryTests : IAsyncLifetime
         await context.Database.MigrateAsync();
     }
 
+    private async Task<Guid> CreateTestUserAsync(AppDbContext context)
+    {
+        var user = new User(
+            login: $"user_{Guid.NewGuid():N}".Substring(0, 30),
+            passwordHash: "hashedpassword",
+            role: Roles.User
+        );
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user.Id;
+    }
+
     [Fact]
     public async Task AddBookingAsync_SavesBookingToDatabase()
     {
@@ -63,6 +75,8 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
+        var userId = await CreateTestUserAsync(context);
+
         var eventId = Guid.NewGuid();
         var eventEntity = new Event(
             title: "Test Event",
@@ -79,7 +93,8 @@ public class BookRepositoryTests : IAsyncLifetime
 
         var repository = new BookingRepository(context);
         var booking = new Booking(
-            eventId
+            eventId,
+            userId
         );
 
         // Act
@@ -103,6 +118,8 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
+        var userId = await CreateTestUserAsync(context);
+
         var eventId = Guid.NewGuid();
         var eventEntity = new Event(
             title: "Test Event",
@@ -118,7 +135,8 @@ public class BookRepositoryTests : IAsyncLifetime
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var booking = new Booking(
-            eventId
+            eventId,
+            userId
         );
         context.Bookings.Add(booking);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -142,6 +160,8 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
+        var userId = await CreateTestUserAsync(context);
+
         var eventId = Guid.NewGuid();
         var eventEntity = new Event(
             title: "Test Event",
@@ -157,7 +177,8 @@ public class BookRepositoryTests : IAsyncLifetime
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var booking = new Booking(
-            eventId
+            eventId,
+            userId
         );
         context.Bookings.Add(booking);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -184,6 +205,8 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
+        var userId = await CreateTestUserAsync(context);
+
         var eventId1 = Guid.NewGuid();
         var eventId2 = Guid.NewGuid();
 
@@ -212,9 +235,9 @@ public class BookRepositoryTests : IAsyncLifetime
         context.Events.AddRange(event1, event2);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var booking1 = new Booking(eventId1);
-        var booking2 = new Booking(eventId2);
-        var booking3 = new Booking(eventId1);
+        var booking1 = new Booking(eventId1, userId);
+        var booking2 = new Booking(eventId2, userId);
+        var booking3 = new Booking(eventId1, userId);
 
         context.Bookings.AddRange(booking1, booking2, booking3);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);

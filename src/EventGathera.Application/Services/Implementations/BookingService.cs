@@ -1,7 +1,9 @@
 ﻿using EventGathera.Application.Repositories.Interfaces;
 using EventGathera.Application.Services.Interfaces;
 using EventGathera.Domain;
+using EventGathera.Domain.Enums;
 using EventGathera.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace EventGathera.Application.Services.Implementations;
 
@@ -20,8 +22,42 @@ public class BookingService : IBookingService
         _eventRepository = eventRepository;
     }
 
+    public async Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default)
+    {
+        var foundBooking = await _bookingRepository.GetBookingByIdAsync(bookingId, ct);
+
+        if (foundBooking is null)
+        {
+            throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
+        }
+
+        if (foundBooking.Status == BookingStatus.Cancel)
+        {
+            throw new InvalidOperationException($"Бронь с ID {bookingId} уже отменена");
+        }
+
+        var eventId = foundBooking.EventId;
+
+        if (foundBooking.Event.StartAt <= DateTime.UtcNow)
+        {
+            throw new ExpiredEventBookingException($"Событие с ID {eventId} уже началось", eventId);
+        }
+
+        if (role == Roles.Admin || foundBooking.UserId == userId)
+        {
+            foundBooking.Cancel();
+            foundBooking.Event.ReleaseSeats();
+
+            await _bookingRepository.SaveChangesAsync(ct);
+        }
+        else
+        {
+            throw new ForbiddenOperationException($"Невозможно отменить чужую бронь пользователем с ID {userId}", userId);
+        }
+    }
+
     /// <inheritdoc/>
-    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken ct)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -29,11 +65,23 @@ public class BookingService : IBookingService
 
         try
         {
+            var activeBookingsCount = await _bookingRepository.GetActiveBookingsCountByUserAsync(userId, ct);
+
+            if (activeBookingsCount >= 10)
+            {
+                throw new ExceedingActiveBookingLimitException($"Не удалось создать бронь, превышен лимит у пользователя с ID {userId}", userId);
+            }
+
             var foundEvent = await _eventRepository.GetEventByIdAsync(eventId);
 
             if (foundEvent is null)
             {
                 throw new ResourceNotFoundException($"Событие с ID {eventId} не найдено", eventId);
+            }
+
+            if (foundEvent.StartAt <= DateTime.UtcNow)
+            {
+                throw new ExpiredEventBookingException($"Событие с ID {eventId} уже началось", eventId);
             }
 
 
@@ -45,7 +93,8 @@ public class BookingService : IBookingService
             }
 
             var newBooking = new Booking(
-                foundEvent.Id
+                foundEvent.Id,
+                userId
             );
 
             await _bookingRepository.AddBookingAsync(newBooking, ct);
@@ -62,7 +111,7 @@ public class BookingService : IBookingService
     }
 
     /// <inheritdoc/>
-    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct)
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
@@ -71,6 +120,11 @@ public class BookingService : IBookingService
         if (foundBooking is null)
         {
             throw new ResourceNotFoundException($"Бронь с ID {bookingId} не найдена", bookingId);
+        }
+
+        if (role != Roles.Admin && foundBooking.UserId != userId)
+        {
+            throw new ForbiddenOperationException($"Невозможно получить чужую бронь пользователем с ID {userId}", userId);
         }
 
         return foundBooking;

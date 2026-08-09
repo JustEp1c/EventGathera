@@ -2,7 +2,10 @@
 using EventGathera.Application.DTO.Responses;
 using EventGathera.Application.Services.Interfaces;
 using EventGathera.Domain;
+using EventGathera.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EventGathera.Presentation.Controllers
 {
@@ -17,9 +20,9 @@ namespace EventGathera.Presentation.Controllers
         public EventsController(IEventService eventService, IBookingService bookingService) 
         {
             _eventService = eventService
-                ?? throw new ArgumentNullException(nameof(IEventService));
+                ?? throw new ArgumentNullException(nameof(eventService));
             _bookingService = bookingService 
-                ?? throw new ArgumentNullException(nameof(IBookingService));
+                ?? throw new ArgumentNullException(nameof(bookingService));
         }
 
         /// <summary>
@@ -53,6 +56,7 @@ namespace EventGathera.Presentation.Controllers
         /// </summary>
         /// <param name="request">DTO нового события</param>
         /// <returns>201, если событие создалось</returns>
+        [Authorize(Roles = nameof(Roles.Admin))]
         [HttpPost]
         public async Task<IActionResult> CreateEvent([FromBody] EventRequest request)
         {
@@ -67,6 +71,7 @@ namespace EventGathera.Presentation.Controllers
         /// <param name="id">Уникальный идентификатор</param>
         /// <param name="request">DTO обновленного события</param>
         /// <returns>204, если событие обновлено</returns>
+        [Authorize(Roles = nameof(Roles.Admin))]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEvent(Guid id, [FromBody] EventRequest request)
         {
@@ -80,6 +85,7 @@ namespace EventGathera.Presentation.Controllers
         /// </summary>
         /// <param name="id">Уникальный идентификатор</param>
         /// <returns>204, если событие удалено</returns>
+        [Authorize(Roles = nameof(Roles.Admin))]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(Guid id)
         {
@@ -94,11 +100,19 @@ namespace EventGathera.Presentation.Controllers
         /// <param name="id">Уникальный идентификатор события</param>
         /// <param name="ct">Токен отмены</param>
         /// <returns>202, если бронь создана и отправлена на обработку</returns>
+        [Authorize]
         [HttpPost("{id}/book")]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreateBooking(Guid id, CancellationToken ct)
         {
-            var result = await _bookingService.CreateBookingAsync(id, ct);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized("Не найден ID пользователя в токене");
+            }
+
+            var result = await _bookingService.CreateBookingAsync(id, userId, ct);
 
             return AcceptedAtAction(nameof(BookingsController.GetBookingById), 
                 "Bookings", 

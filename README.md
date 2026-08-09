@@ -498,3 +498,142 @@ dotnet ef migrations list --project ./src/EventGathera.Infrastructure --startup-
 # Запуск всех тестов (включая интеграционные)
 dotnet test
 ```
+
+## 🔐 Аутентификация и авторизация
+
+### Ролевая модель
+
+В приложении реализована ролевая модель доступа с двумя уровнями прав:
+
+| Роль | Описание | Права |
+|------|----------|-------|
+| **User** | Обычный пользователь | • Просмотр списка событий<br>• Просмотр деталей события<br>• Создание бронирований<br>• Отмена своих бронирований<br>• Просмотр своих бронирований |
+| **Admin** | Администратор системы | • Все права пользователя<br>• Создание событий<br>• Редактирование событий<br>• Удаление событий<br>• Отмена любых бронирований |
+
+### Разграничение прав доступа
+
+Доступ к эндпоинтам контролируется с помощью атрибутов авторизации:
+
+```csharp
+// Доступ только для администраторов
+[Authorize(Roles = "Admin")]
+[HttpDelete("{id}")]
+public async Task<IActionResult> DeleteEvent(Guid id)
+
+// Доступ для всех аутентифицированных пользователей
+[Authorize]
+[HttpPost("{id}/book")]
+public async Task<IActionResult> CreateBooking(Guid id)
+
+// Публичный доступ (без аутентификации)
+[AllowAnonymous]
+[HttpPost("auth/login")]
+public async Task<IActionResult> Login(string login, string password)
+```
+
+### Получение JWT-токена через Swagger
+
+Зарегистрируйте пользователя через эндпоинт регистрации:
+
+```text
+POST /users/auth/register
+{
+  "login": "admin",
+  "password": "secure_password",
+  "role": "Admin"
+}
+```
+
+Получите JWT-токен через эндпоинт логина:
+
+```text
+POST /users/auth/login
+{
+  "login": "admin",
+  "password": "secure_password"
+}
+```
+
+В ответе вы получите JWT-токен:
+
+```text
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+Авторизуйтесь в Swagger:
+
+ - Откройте Swagger UI по адресу /swagger
+
+ - Нажмите кнопку "Authorize" (🔒) в правом верхнем углу
+
+ - В поле "Value" введите токен в формате:
+
+ ```text
+Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+- Нажмите "Authorize"
+
+После успешной авторизации все запросы к защищённым эндпоинтам будут автоматически содержать заголовок авторизации.
+
+### Настройка JWT в конфигурации
+
+JWT-параметры настраиваются в файле appsettings.json:
+
+```json
+{
+  "JwtSettings": {
+    "Secret": "ваш-секретный-ключ",
+    "Issuer": "event-gathera",
+    "Audience": "event-gathera",
+    "ExpiryMinutes": 60
+  }
+}
+```
+
+### Рекомендации по безопасности
+
+⚠️ Важно: В продакшн-среде никогда не используйте значения секрета по умолчанию!
+
+Для разработки
+Используйте User Secrets для хранения JWT-секрета:
+
+```bash
+# Инициализация User Secrets
+dotnet user-secrets init
+
+# Установка секрета
+dotnet user-secrets set "JwtSettings:Secret" "ваш-супер-секретный-ключ-минимум-32-символа"
+```
+
+Для продакшена
+Используйте один из следующих способов:
+
+Переменные окружения:
+
+```bash
+export JwtSettings__Secret="ваш-секретный-ключ"
+```
+
+Azure Key Vault или AWS Secrets Manager:
+
+```json
+{
+  "JwtSettings": {
+    "Secret": "#{JwtSettings.Secret}#"  // Заменяется при деплое
+  }
+}
+```
+
+Docker Secrets:
+
+```yaml
+services:
+  app:
+    environment:
+      - JwtSettings__Secret=/run/secrets/jwt_secret
+    secrets:
+      - jwt_secret
+```

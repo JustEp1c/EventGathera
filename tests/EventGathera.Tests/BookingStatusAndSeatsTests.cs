@@ -18,6 +18,8 @@ public class BookingStatusAndSeatsTests
     private readonly string _dbName;
     private readonly Guid _existingEventId;
 
+    private readonly Guid _testUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     public BookingStatusAndSeatsTests()
     {
         _dbName = Guid.NewGuid().ToString();
@@ -60,7 +62,8 @@ public class BookingStatusAndSeatsTests
     {
         // Arrange
         var booking = new Booking(
-            _existingEventId
+            _existingEventId,
+            _testUserId
         );
 
         // Act
@@ -77,7 +80,8 @@ public class BookingStatusAndSeatsTests
     {
         // Arrange
         var booking = new Booking(
-            _existingEventId
+            _existingEventId,
+            _testUserId
         );
 
         // Act
@@ -167,7 +171,7 @@ public class BookingStatusAndSeatsTests
         int initialAvailableSeats = eventEntity.AvailableSeats;
 
         // Act
-        var booking1 = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        var booking1 = await _bookingService.CreateBookingAsync(_existingEventId, _testUserId, ct);
         await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
@@ -180,7 +184,7 @@ public class BookingStatusAndSeatsTests
         Assert.Equal(initialAvailableSeats, eventEntity.AvailableSeats);
 
         // Act
-        var booking2 = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        var booking2 = await _bookingService.CreateBookingAsync(_existingEventId, _testUserId, ct);
         await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         // Assert
@@ -203,7 +207,7 @@ public class BookingStatusAndSeatsTests
         var bookings = new List<Booking>();
         for (int i = 0; i < totalSeats; i++)
         {
-            var booking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+            var booking = await _bookingService.CreateBookingAsync(_existingEventId, _testUserId, ct);
             bookings.Add(booking);
         }
 
@@ -218,7 +222,7 @@ public class BookingStatusAndSeatsTests
         Assert.Equal(1, eventEntity.AvailableSeats);
 
         // Act
-        var newBooking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        var newBooking = await _bookingService.CreateBookingAsync(_existingEventId, _testUserId, ct);
         await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         // Assert
@@ -238,7 +242,7 @@ public class BookingStatusAndSeatsTests
             .FirstAsync(e => e.Id == _existingEventId, cancellationToken: TestContext.Current.CancellationToken);
         int initialAvailableSeats = eventEntity.AvailableSeats;
 
-        var booking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        var booking = await _bookingService.CreateBookingAsync(_existingEventId, _testUserId, ct);
         await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(initialAvailableSeats - 1, eventEntity.AvailableSeats);
@@ -252,7 +256,7 @@ public class BookingStatusAndSeatsTests
         Assert.Equal(initialAvailableSeats, eventEntity.AvailableSeats);
 
         // Act
-        var newBooking = await _bookingService.CreateBookingAsync(_existingEventId, ct);
+        var newBooking = await _bookingService.CreateBookingAsync(_existingEventId, _testUserId, ct);
         await _dbContext.Entry(eventEntity).ReloadAsync(TestContext.Current.CancellationToken);
 
         // Assert

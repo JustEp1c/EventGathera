@@ -30,6 +30,14 @@ public interface IBookingRepository
     Task AddBookingAsync(Booking booking, CancellationToken ct = default);
 
     /// <summary>
+    /// Получить число активных броней у пользователя
+    /// </summary>
+    /// <param name="userId">Id пользователя</param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    Task<int> GetActiveBookingsCountByUserAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>
     /// Сохранить изменения
     /// </summary>
     /// <param name="ct"></param>
