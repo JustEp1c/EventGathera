@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="EventGathera.Events.Application/EventGathera.Events.Application.csproj" Id="ee9456c9-b70a-4fde-8330-6bea8efdd883" />
+  <Project Path="EventGathera.Events.Domain/EventGathera.Events.Domain.csproj" Id="0322357f-f095-4f7b-9a07-669269e9a81d" />
+  <Project Path="EventGathera.Events.Infrastructure/EventGathera.Events.Infrastructure.csproj" Id="f16fe9f2-321d-4c5d-87c3-b2b592a9f737" />
+  <Project Path="EventGathera.Events.Presentation/EventGathera.Events.Presentation.csproj" Id="86f3a8d9-2d9c-4624-bca0-1700c28e0dca" />
+</Solution>

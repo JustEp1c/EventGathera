@@ -1,0 +1,6 @@
+@EventGathera.Bookings.Presentation_HostAddress = http://localhost:5182
+
+GET {{EventGathera.Bookings.Presentation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
