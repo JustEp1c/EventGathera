@@ -20,7 +20,7 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public async Task<PaginatedResult<Event>> GetAllEventsAsync(EventQueryParams queryParams)
+    public async Task<PaginatedResult<Event>> GetAllEventsAsync(EventQueryParams queryParams, CancellationToken ct)
     {
         IQueryable<Event> events = _eventrepository.GetAllEventsQuery();
 
@@ -46,7 +46,7 @@ public class EventService : IEventService
         var eventsOnPage = await events
             .Skip((queryParams.Page - 1) * queryParams.PageSize)
             .Take(queryParams.PageSize)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var paginatedResult = new PaginatedResult<Event>
         {
@@ -60,9 +60,9 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public async Task<Event> GetEventByIdAsync(Guid id)
+    public async Task<Event> GetEventByIdAsync(Guid id, CancellationToken ct)
     {
-        var foundEvent = await _eventrepository.GetEventByIdAsync(id);
+        var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
@@ -73,7 +73,7 @@ public class EventService : IEventService
     }
 
     /// <inheritdoc/>
-    public async Task<Event> CreateEventAsync(EventRequest request)
+    public async Task<Event> CreateEventAsync(EventRequest request, CancellationToken ct)
     {
         var newEvent = new Event(
             request.Title,
@@ -83,17 +83,17 @@ public class EventService : IEventService
             request.Description
         );
 
-        await _eventrepository.AddEventAsync(newEvent);
+        await _eventrepository.AddEventAsync(newEvent, ct);
 
-        await _eventrepository.SaveChangesAsync();
+        await _eventrepository.SaveChangesAsync(ct);
 
         return newEvent;
     }
 
     /// <inheritdoc/>
-    public async Task UpdateEventAsync(Guid id, EventRequest request)
+    public async Task UpdateEventAsync(Guid id, EventRequest request, CancellationToken ct)
     {
-        var foundEvent = await _eventrepository.GetEventByIdAsync(id);
+        var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
@@ -105,23 +105,23 @@ public class EventService : IEventService
         foundEvent.StartAt = request.StartAt;
         foundEvent.EndAt = request.EndAt;
 
-        await _eventrepository.SaveChangesAsync();
+        await _eventrepository.SaveChangesAsync(ct);
     }
 
 
     /// <inheritdoc/>
-    public async Task DeleteEventAsync(Guid id)
+    public async Task DeleteEventAsync(Guid id, CancellationToken ct)
     {
-        var foundEvent = await _eventrepository.GetEventByIdAsync(id);
+        var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
             throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
-        _eventrepository.RemoveEvent(foundEvent);
+        _eventrepository.RemoveEvent(foundEvent, ct);
 
-        await _eventrepository.SaveChangesAsync();
+        await _eventrepository.SaveChangesAsync(ct);
     }
 
 }
