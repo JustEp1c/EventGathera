@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EventGathera.Bookings.Domain\EventGathera.Bookings.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Shared\EventGathera.Shared\EventGathera.Shared.csproj" />
   </ItemGroup>
 
 </Project>

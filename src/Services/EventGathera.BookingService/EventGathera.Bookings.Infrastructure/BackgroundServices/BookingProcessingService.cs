@@ -1,7 +1,9 @@
-﻿using EventGathera.Bookings.Application.Repositories.Interfaces;
+﻿using EventGathera.Bookings.Application.Kafka;
+using EventGathera.Bookings.Application.Repositories.Interfaces;
 using EventGathera.Bookings.Domain.Enums;
 using EventGathera.Bookings.Entities.Domain;
 using EventGathera.Bookings.Infrastructure.Constants;
+using EventGathera.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,10 +20,13 @@ public class BookingProcessingService : BackgroundService
 
     private readonly ILogger<BookingProcessingService> _logger;
 
-    public BookingProcessingService(IServiceScopeFactory serviceScopeFactory, ILogger<BookingProcessingService> logger)
+    private readonly IEventPublisher _eventPublisher;
+
+    public BookingProcessingService(IServiceScopeFactory serviceScopeFactory, ILogger<BookingProcessingService> logger, IEventPublisher eventPublisher)
     {
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
+        _eventPublisher = eventPublisher;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -89,7 +94,15 @@ public class BookingProcessingService : BackgroundService
                     return;
                 }
 
-                //TODO: Здесь будет отправка сообщения
+                var bookingCreatedMessage = new BookingCreated
+                {
+                    BookingId = currentBooking.Id,
+                    EventId = currentBooking.EventId,
+                    UserId = currentBooking.UserId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _eventPublisher.PublishBookingCreatedAsync(bookingCreatedMessage, stoppingToken);
 
                 _logger.LogInformation("Обработка брони {BookingId} завершена, статус: {BookingStatus}", booking.Id, booking.Status);
             }
