@@ -19,7 +19,7 @@ public static class RegisterInfrastructureExtension
         services.AddAppDbContext(configuration);
         services.AddRepositories();
         services.AddBackgroundServices();
-        services.AddKafka();
+        services.AddKafka(configuration);
 
         return services;
     }
@@ -50,11 +50,10 @@ public static class RegisterInfrastructureExtension
         return services;
     }
 
-    private static IServiceCollection AddKafka(this IServiceCollection services)
+    private static IServiceCollection AddKafka(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IProducer<string, string>>(sp =>
         {
-            var configuration = sp.GetRequiredService<IConfiguration>();
             var producerConfig = new ProducerConfig
             {
                 BootstrapServers = configuration["Kafka:BootstrapServers"],
@@ -68,7 +67,27 @@ public static class RegisterInfrastructureExtension
             return new ProducerBuilder<string, string>(producerConfig).Build();
         });
 
+        services.AddSingleton<IConsumer<string, string>>(sp =>
+        {
+
+            var consumerConfig = new ConsumerConfig
+            {
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
+                GroupId = configuration["Kafka:ConsumerGroup"],
+                AutoOffsetReset = AutoOffsetReset.Earliest,
+                EnableAutoCommit = false,
+                EnableAutoOffsetStore = false,
+                AllowAutoCreateTopics = true,
+                SessionTimeoutMs = 6000,
+                MaxPollIntervalMs = 300000
+            };
+
+            return new ConsumerBuilder<string, string>(consumerConfig).Build();
+        });
+
         services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+
+        services.AddHostedService<KafkaEventConsumer>();
 
         return services;
     }
