@@ -85,6 +85,16 @@ public class BookingService : IBookingService
 
             await _bookingRepository.SaveChangesAsync(ct);
 
+            var bookingCreated = new BookingCreated
+            {
+                BookingId = newBooking.Id,
+                EventId = newBooking.EventId,
+                UserId = newBooking.UserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _eventPublisher.PublishBookingCreatedAsync(bookingCreated, ct);
+
             return newBooking;
 
         }

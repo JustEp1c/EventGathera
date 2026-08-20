@@ -1,7 +1,6 @@
 ﻿using Confluent.Kafka;
 using EventGathera.Bookings.Application.Kafka;
 using EventGathera.Bookings.Application.Repositories.Interfaces;
-using EventGathera.Bookings.Infrastructure.BackgroundServices;
 using EventGathera.Bookings.Infrastructure.DataAccess;
 using EventGathera.Bookings.Infrastructure.Kafka;
 using EventGathera.Bookings.Infrastructure.Repositories.Implementations;
@@ -18,15 +17,7 @@ public static class RegisterInfrastructureExtension
     {
         services.AddAppDbContext(configuration);
         services.AddRepositories();
-        services.AddBackgroundServices();
         services.AddKafka(configuration);
-
-        return services;
-    }
-
-    private static IServiceCollection AddBackgroundServices(this IServiceCollection services)
-    {
-        services.AddHostedService<BookingProcessingService>();
 
         return services;
     }
