@@ -11,6 +11,8 @@ public sealed class EventsDbContext : DbContext
 
     public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventsDbContext).Assembly);

@@ -19,14 +19,12 @@ public class KafkaEventConsumer : BackgroundService
     private readonly IConsumer<string, string> _consumer;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<KafkaEventConsumer> _logger;
-    private readonly IEventPublisher _eventPublisher;
 
-    public KafkaEventConsumer(IConsumer<string, string> consumer, IServiceScopeFactory serviceScopeFactory, ILogger<KafkaEventConsumer> logger, IEventPublisher eventPublisher)
+    public KafkaEventConsumer(IConsumer<string, string> consumer, IServiceScopeFactory serviceScopeFactory, ILogger<KafkaEventConsumer> logger)
     {
         _consumer = consumer;
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
-        _eventPublisher = eventPublisher;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -60,10 +58,11 @@ public class KafkaEventConsumer : BackgroundService
                     using var scope = _serviceScopeFactory.CreateScope();
                     var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
                     var processedMessageRepo = scope.ServiceProvider.GetRequiredService<IProcessedMessageRepository>();
+                    var outboxRepo = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
 
                     if (result.Topic == KafkaTopics.BookingCreatedTopic)
                     {
-                        await ProcessBookingCreatedAsync(result.Message, eventRepository, processedMessageRepo, stoppingToken);
+                        await ProcessBookingCreatedAsync(result.Message, eventRepository, processedMessageRepo, outboxRepo, stoppingToken);
                     }
                     else if (result.Topic == KafkaTopics.BookingCancelledTopic)
                     {
@@ -156,7 +155,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, CancellationToken stoppingToken)
+    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, IOutboxRepository outboxRepository, CancellationToken stoppingToken)
     {
         try
         {
@@ -182,20 +181,12 @@ public class KafkaEventConsumer : BackgroundService
 
             if (foundEvent == null)
             {
-                _logger.LogWarning(
-                    "Событие {EventId} не найдено для брони {BookingId}",
-                    bookingCreated.EventId,
-                    bookingCreated.BookingId);
-
-                await _eventPublisher.PublishEventSeatUnavailableAsync(
-                    new EventSeatUnavailable
-                    {
-                        BookingId = bookingCreated.BookingId,
-                        EventId = bookingCreated.EventId,
-                        UserId = bookingCreated.UserId,
-                        Reason = $"Событие с ID {bookingCreated.EventId} не найдено",
-                        FailedAt = DateTime.UtcNow
-                    },
+                await PublishSeatUnavailableWithOutboxAsync(
+                    bookingCreated,
+                    $"Событие с ID {bookingCreated.EventId} не найдено",
+                    outboxRepository,
+                    processedMessageRepository,
+                    messageId,
                     stoppingToken);
 
                 return;
@@ -203,20 +194,12 @@ public class KafkaEventConsumer : BackgroundService
 
             if (foundEvent.StartAt <= bookingCreated.CreatedAt)
             {
-                _logger.LogWarning(
-                    "Событие {EventId} уже началось. Бронь {BookingId} отклонена",
-                    bookingCreated.EventId,
-                    bookingCreated.BookingId);
-
-                await _eventPublisher.PublishEventSeatUnavailableAsync(
-                    new EventSeatUnavailable
-                    {
-                        BookingId = bookingCreated.BookingId,
-                        EventId = bookingCreated.EventId,
-                        UserId = bookingCreated.UserId,
-                        Reason = $"Событие '{foundEvent.Title}' уже началось",
-                        FailedAt = DateTime.UtcNow
-                    },
+                await PublishSeatUnavailableWithOutboxAsync(
+                    bookingCreated,
+                    $"Событие '{foundEvent.Title}' уже началось",
+                    outboxRepository,
+                    processedMessageRepository,
+                    messageId,
                     stoppingToken);
 
                 return;
@@ -224,20 +207,12 @@ public class KafkaEventConsumer : BackgroundService
 
             if (!foundEvent.TryReserveSeats())
             {
-                _logger.LogWarning(
-                        "Нет свободных мест на событие {EventId}. Бронь {BookingId} отклонена",
-                        bookingCreated.EventId,
-                        bookingCreated.BookingId);
-
-                await _eventPublisher.PublishEventSeatUnavailableAsync(
-                    new EventSeatUnavailable
-                    {
-                        BookingId = bookingCreated.BookingId,
-                        EventId = bookingCreated.EventId,
-                        UserId = bookingCreated.UserId,
-                        Reason = $"Нет свободных мест на событие '{foundEvent.Title}'",
-                        FailedAt = DateTime.UtcNow
-                    },
+                await PublishSeatUnavailableWithOutboxAsync(
+                    bookingCreated,
+                    $"Нет свободных мест на событие '{foundEvent.Title}'",
+                    outboxRepository,
+                    processedMessageRepository,
+                    messageId,
                     stoppingToken);
 
                 return;
@@ -246,19 +221,23 @@ public class KafkaEventConsumer : BackgroundService
             var processedMessage = new ProcessedMessage(messageId, "BookingCreated");
             await processedMessageRepository.AddAsync(processedMessage, stoppingToken);
 
-            await eventRepository.SaveChangesAsync(stoppingToken);
+            var seatReserved = new EventSeatReserved
+            {
+                BookingId = bookingCreated.BookingId,
+                EventId = bookingCreated.EventId,
+                UserId = bookingCreated.UserId,
+                SeatsReserved = 1,
+                AvailableSeats = foundEvent.AvailableSeats,
+                ReservedAt = DateTime.UtcNow
+            };
 
-            await _eventPublisher.PublishEventSeatReservedAsync(
-                    new EventSeatReserved
-                    {
-                        BookingId = bookingCreated.BookingId,
-                        EventId = bookingCreated.EventId,
-                        UserId = bookingCreated.UserId,
-                        SeatsReserved = 1,
-                        AvailableSeats = foundEvent.AvailableSeats,
-                        ReservedAt = DateTime.UtcNow
-                    },
-                    stoppingToken);
+            var outboxMessage = new OutboxMessage(
+               "EventSeatReserved",
+               JsonSerializer.Serialize(seatReserved)
+           );
+            await outboxRepository.AddAsync(outboxMessage, stoppingToken);
+
+            await eventRepository.SaveChangesAsync(stoppingToken);
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
         {
@@ -275,5 +254,30 @@ public class KafkaEventConsumer : BackgroundService
             _logger.LogError(ex, "Ошибка обработки BookingCreated: {Message}", ex.Message);
             throw;
         }
+    }
+
+    private async Task PublishSeatUnavailableWithOutboxAsync(BookingCreated bookingCreated, string reason, IOutboxRepository outboxRepository, IProcessedMessageRepository processedMessageRepository, string messageId, CancellationToken stoppingToken)
+    {
+        var processedMessage = new ProcessedMessage(messageId, "BookingCreated");
+        await processedMessageRepository.AddAsync(processedMessage, stoppingToken);
+
+        var seatUnavailable = new EventSeatUnavailable
+        {
+            BookingId = bookingCreated.BookingId,
+            EventId = bookingCreated.EventId,
+            UserId = bookingCreated.UserId,
+            Reason = reason,
+            FailedAt = DateTime.UtcNow
+        };
+
+        var outboxMessage = new OutboxMessage(
+            "EventSeatUnavailable",
+            JsonSerializer.Serialize(seatUnavailable)
+        );
+        await outboxRepository.AddAsync(outboxMessage, stoppingToken);
+
+        await processedMessageRepository.SaveChangesAsync(stoppingToken);
+
+        _logger.LogWarning("Место НЕ зарезервировано. Причина: {Reason}", reason);
     }
 }
