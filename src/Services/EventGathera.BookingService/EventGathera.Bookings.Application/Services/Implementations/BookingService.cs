@@ -1,10 +1,12 @@
 ﻿using EventGathera.Bookings.Application.Kafka;
 using EventGathera.Bookings.Application.Repositories.Interfaces;
 using EventGathera.Bookings.Application.Services.Interfaces;
+using EventGathera.Bookings.Domain.Entities;
 using EventGathera.Bookings.Domain.Enums;
 using EventGathera.Bookings.Domain.Exceptions;
 using EventGathera.Bookings.Entities.Domain;
 using EventGathera.Shared.Contracts;
+using System.Text.Json;
 
 namespace EventGathera.Bookings.Application.Services.Implementations;
 
@@ -15,12 +17,12 @@ public class BookingService : IBookingService
 
     private readonly IBookingRepository _bookingRepository;
 
-    private readonly IEventPublisher _eventPublisher;
+    private readonly IOutboxRepository _outboxRepository;
 
-    public BookingService(IBookingRepository bookingRepository, IEventPublisher eventPublisher)
+    public BookingService(IBookingRepository bookingRepository, IOutboxRepository outboxRepository)
     {
         _bookingRepository = bookingRepository;
-        _eventPublisher = eventPublisher;
+        _outboxRepository = outboxRepository;
     }
 
     public async Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default)
@@ -41,17 +43,22 @@ public class BookingService : IBookingService
         {
             foundBooking.Cancel();
 
-            await _bookingRepository.SaveChangesAsync(ct);
-
-            var bookingCancelledMessage = new BookingCancelled
+            var bookingCancelled = new BookingCancelled
             {
-                EventId = foundBooking.EventId,
                 BookingId = foundBooking.Id,
+                EventId = foundBooking.EventId,
                 UserId = foundBooking.UserId,
                 CancelledAt = DateTime.UtcNow
             };
 
-            await _eventPublisher.PublishBookingCancelledAsync(bookingCancelledMessage, ct);
+            var outboxMessage = new OutboxMessage(
+                "BookingCancelled",
+                JsonSerializer.Serialize(bookingCancelled)
+            );
+
+            await _outboxRepository.AddAsync(outboxMessage, ct);
+
+            await _bookingRepository.SaveChangesAsync(ct);
 
         }
         else
@@ -83,8 +90,6 @@ public class BookingService : IBookingService
 
             await _bookingRepository.AddBookingAsync(newBooking, ct);
 
-            await _bookingRepository.SaveChangesAsync(ct);
-
             var bookingCreated = new BookingCreated
             {
                 BookingId = newBooking.Id,
@@ -93,7 +98,14 @@ public class BookingService : IBookingService
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _eventPublisher.PublishBookingCreatedAsync(bookingCreated, ct);
+            var outboxMessage = new OutboxMessage(
+                "BookingCreated",
+                JsonSerializer.Serialize(bookingCreated)
+            );
+
+            await _outboxRepository.AddAsync(outboxMessage, ct);
+
+            await _bookingRepository.SaveChangesAsync(ct);
 
             return newBooking;
 

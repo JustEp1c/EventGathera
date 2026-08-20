@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using EventGathera.Bookings.Application.Kafka;
 using EventGathera.Bookings.Application.Repositories.Interfaces;
+using EventGathera.Bookings.Infrastructure.BackgroundServices;
 using EventGathera.Bookings.Infrastructure.DataAccess;
 using EventGathera.Bookings.Infrastructure.Kafka;
 using EventGathera.Bookings.Infrastructure.Repositories.Implementations;
@@ -79,6 +80,9 @@ public static class RegisterInfrastructureExtension
         services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
 
         services.AddHostedService<KafkaEventConsumer>();
+
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddHostedService<OutboxRelayService>();
 
         return services;
     }

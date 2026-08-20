@@ -1,6 +1,6 @@
 ﻿using Confluent.Kafka;
-using EventGathera.Bookings.Application.Kafka;
 using EventGathera.Bookings.Application.Repositories.Interfaces;
+using EventGathera.Bookings.Domain.Entities;
 using EventGathera.Bookings.Domain.Enums;
 using EventGathera.Shared.Contracts;
 using EventGathera.Shared.Topics;
@@ -16,14 +16,15 @@ public class KafkaEventConsumer : BackgroundService
     private readonly IConsumer<string, string> _consumer;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<KafkaEventConsumer> _logger;
-    private readonly IEventPublisher _eventPublisher;
 
-    public KafkaEventConsumer(IConsumer<string, string> consumer, IServiceScopeFactory serviceScopeFactory, ILogger<KafkaEventConsumer> logger, IEventPublisher eventPublisher)
+    private readonly IOutboxRepository _outboxRepository;
+
+    public KafkaEventConsumer(IConsumer<string, string> consumer, IServiceScopeFactory serviceScopeFactory, ILogger<KafkaEventConsumer> logger, IOutboxRepository outboxRepository)
     {
         _consumer = consumer;
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
-        _eventPublisher = eventPublisher;
+        _outboxRepository = outboxRepository;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -120,21 +121,29 @@ public class KafkaEventConsumer : BackgroundService
             }
 
             booking.Reject();
-            await bookingRepo.SaveChangesAsync(stoppingToken);
 
-            _logger.LogWarning(
-                "Бронь {BookingId} отклонена. Причина: {Reason}",
-                booking.Id,
-                unavailable.Reason);
-
-            await _eventPublisher.PublishBookingRejectedAsync(new BookingRejected
+            var bookingRejected = new BookingRejected
             {
                 BookingId = unavailable.BookingId,
                 EventId = unavailable.EventId,
                 UserId = unavailable.UserId,
                 Reason = unavailable.Reason,
                 RejectedAt = DateTime.UtcNow
-            }, stoppingToken);
+            };
+
+            var outboxMessage = new OutboxMessage(
+                "BookingRejected",
+                JsonSerializer.Serialize(bookingRejected)
+            );
+
+            await _outboxRepository.AddAsync(outboxMessage, stoppingToken);
+
+            await bookingRepo.SaveChangesAsync(stoppingToken);
+
+            _logger.LogWarning(
+                "Бронь {BookingId} отклонена. Причина: {Reason}",
+                booking.Id,
+                unavailable.Reason);
         }
         catch (JsonException ex)
         {
@@ -178,16 +187,25 @@ public class KafkaEventConsumer : BackgroundService
             }
 
             booking.Confirm();
-            await bookingRepo.SaveChangesAsync(stoppingToken);
 
-
-            await _eventPublisher.PublishBookingConfirmedAsync(new BookingConfirmed
+            var bookingConfirmed = new BookingConfirmed
             {
                 BookingId = reserved.BookingId,
                 EventId = reserved.EventId,
                 UserId = reserved.UserId,
                 ConfirmedAt = DateTime.UtcNow
-            }, stoppingToken);
+            };
+
+            var outboxMessage = new OutboxMessage(
+                "BookingConfirmed",
+                JsonSerializer.Serialize(bookingConfirmed)
+            );
+
+            await _outboxRepository.AddAsync(outboxMessage, stoppingToken);
+
+
+            await bookingRepo.SaveChangesAsync(stoppingToken);
+
         }
         catch (JsonException ex)
         {
