@@ -9,6 +9,8 @@ public sealed class EventsDbContext : DbContext
 
     public DbSet<Event> Events => Set<Event>();
 
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventsDbContext).Assembly);

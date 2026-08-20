@@ -3,8 +3,10 @@ using EventGathera.Events.Application.Kafka;
 using EventGathera.Events.Application.Repositories.Interfaces;
 using EventGathera.Events.Application.Services.Implementations;
 using EventGathera.Events.Application.Services.Interfaces;
+using EventGathera.Events.Domain.Entities;
 using EventGathera.Shared.Contracts;
 using EventGathera.Shared.Topics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -57,14 +59,15 @@ public class KafkaEventConsumer : BackgroundService
 
                     using var scope = _serviceScopeFactory.CreateScope();
                     var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
+                    var processedMessageRepo = scope.ServiceProvider.GetRequiredService<IProcessedMessageRepository>();
 
                     if (result.Topic == KafkaTopics.BookingCreatedTopic)
                     {
-                        await ProcessBookingCreatedAsync(result.Message, eventRepository, stoppingToken);
+                        await ProcessBookingCreatedAsync(result.Message, eventRepository, processedMessageRepo, stoppingToken);
                     }
                     else if (result.Topic == KafkaTopics.BookingCancelledTopic)
                     {
-                        await ProcessBookingCancelledAsync(result.Message, eventRepository, stoppingToken);
+                        await ProcessBookingCancelledAsync(result.Message, eventRepository, processedMessageRepo, stoppingToken);
                     }
 
                     _consumer.StoreOffset(result);
@@ -95,7 +98,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventRepository eventRepository, CancellationToken stoppingToken)
+    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, CancellationToken stoppingToken)
     {
         try
         {
@@ -104,6 +107,16 @@ public class KafkaEventConsumer : BackgroundService
             if (bookingCancelled == null)
             {
                 _logger.LogWarning("Не удалось десериализовать BookingCancelled");
+                return;
+            }
+
+            var messageId = $"{bookingCancelled.BookingId}_{bookingCancelled.EventId}";
+
+            if (await processedMessageRepository.ExistsAsync(messageId, "BookingCancelled", stoppingToken))
+            {
+                _logger.LogWarning(
+                    "Сообщение об отмене {MessageId} уже обработано. Пропускаем.",
+                    messageId);
                 return;
             }
 
@@ -120,7 +133,16 @@ public class KafkaEventConsumer : BackgroundService
 
             foundEvent.ReleaseSeats();
 
+            var processedMessage = new ProcessedMessage(messageId, "BookingCancelled");
+            await processedMessageRepository.AddAsync(processedMessage, stoppingToken);
+
             await eventRepository.SaveChangesAsync(stoppingToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
+        {
+            _logger.LogWarning(
+                "Сообщение об отмене уже обработано. Пропускаем.");
+            return;
         }
         catch (JsonException ex)
         {
@@ -134,7 +156,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, CancellationToken stoppingToken)
+    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, CancellationToken stoppingToken)
     {
         try
         {
@@ -143,6 +165,16 @@ public class KafkaEventConsumer : BackgroundService
             if (bookingCreated == null)
             {
                 _logger.LogWarning("Не удалось десериализовать BookingCreated");
+                return;
+            }
+
+            var messageId = $"{bookingCreated.BookingId}_{bookingCreated.EventId}";
+
+            if (await processedMessageRepository.ExistsAsync(messageId, "BookingCreated", stoppingToken))
+            {
+                _logger.LogWarning(
+                    "Сообщение {MessageId} уже обработано. Пропускаем.",
+                    messageId);
                 return;
             }
 
@@ -211,6 +243,9 @@ public class KafkaEventConsumer : BackgroundService
                 return;
             }
 
+            var processedMessage = new ProcessedMessage(messageId, "BookingCreated");
+            await processedMessageRepository.AddAsync(processedMessage, stoppingToken);
+
             await eventRepository.SaveChangesAsync(stoppingToken);
 
             await _eventPublisher.PublishEventSeatReservedAsync(
@@ -224,6 +259,11 @@ public class KafkaEventConsumer : BackgroundService
                         ReservedAt = DateTime.UtcNow
                     },
                     stoppingToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
+        {
+            _logger.LogWarning("Сообщение уже обработано. Пропускаем.");
+            return;
         }
         catch (JsonException ex)
         {

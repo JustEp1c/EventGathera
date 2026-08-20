@@ -37,6 +37,8 @@ public static class RegisterInfrastructureExtension
     private static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IProcessedMessageRepository, ProcessedMessageRepository>();
 
         return services;
     }
