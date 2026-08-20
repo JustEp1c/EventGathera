@@ -54,10 +54,9 @@ public class KafkaEventConsumer : BackgroundService
                     using var scope = _serviceScopeFactory.CreateScope();
                     var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
 
-                    var bookingCreatedMessage = JsonSerializer.Deserialize<BookingCreated>(result.Message.Value);
-
                     await ProcessMessageAsync(result.Message, eventRepository, stoppingToken);
 
+                    _consumer.StoreOffset(result);
                     _consumer.Commit(result);
 
                     _logger.LogInformation("Сообщение обработано и закоммичено");

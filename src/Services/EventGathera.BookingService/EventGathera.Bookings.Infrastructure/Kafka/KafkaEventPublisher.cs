@@ -27,12 +27,12 @@ public class KafkaEventPublisher : IEventPublisher, IDisposable
 
     public async Task PublishBookingConfirmedAsync(BookingConfirmed @event, CancellationToken ct = default)
     {
-        await PublishAsync(KafkaTopics.BookingCreatedTopic, @event.EventId.ToString(), @event, ct);
+        await PublishAsync(KafkaTopics.BookingConfirmedTopic, @event.EventId.ToString(), @event, ct);
     }
 
     public async Task PublishBookingCreatedAsync(BookingCreated @event, CancellationToken ct = default)
     {
-        await PublishAsync(KafkaTopics.BookingConfirmedTopic, @event.EventId.ToString(), @event, ct);
+        await PublishAsync(KafkaTopics.BookingCreatedTopic, @event.EventId.ToString(), @event, ct);
     }
 
     public async Task PublishBookingRejectedAsync(BookingRejected @event, CancellationToken ct = default)

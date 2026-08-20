@@ -49,45 +49,6 @@ public class KafkaEventConsumer : BackgroundService
                         result.Partition.Value,
                         result.Offset.Value);
 
-                    //if (result.Topic == KafkaTopics.EventSeatReservedTopic)
-                    //{
-                    //    var eventSeatReservedMessage = JsonSerializer.Deserialize<EventSeatReserved>(result.Message.Value);
-
-                    //    if (eventSeatReservedMessage == null)
-                    //    {
-                    //        _logger.LogWarning("Не удалось десериализовать сообщение");
-                    //        continue;
-                    //    }
-
-                    //    await _eventPublisher.PublishBookingConfirmedAsync(new BookingConfirmed
-                    //    {
-                    //        BookingId = eventSeatReservedMessage.BookingId,
-                    //        EventId = eventSeatReservedMessage.EventId,
-                    //        UserId = eventSeatReservedMessage.UserId,
-                    //        ConfirmedAt = DateTime.UtcNow
-                    //    }, stoppingToken);
-                    //}
-
-                    //if (result.Topic == KafkaTopics.EventSeatUnavailableTopic)
-                    //{
-                    //    var eventSeatUnavailableMessage = JsonSerializer.Deserialize<EventSeatUnavailable>(result.Message.Value);
-
-                    //    if (eventSeatUnavailableMessage == null)
-                    //    {
-                    //        _logger.LogWarning("Не удалось десериализовать сообщение");
-                    //        continue;
-                    //    }
-
-                    //    await _eventPublisher.PublishBookingRejectedAsync(new BookingRejected
-                    //    {
-                    //        BookingId = eventSeatUnavailableMessage.BookingId,
-                    //        EventId = eventSeatUnavailableMessage.EventId,
-                    //        UserId = eventSeatUnavailableMessage.UserId,
-                    //        Reason = eventSeatUnavailableMessage.Reason,
-                    //        RejectedAt = DateTime.UtcNow
-                    //    }, stoppingToken);
-                    //}
-
                     using var scope = _serviceScopeFactory.CreateScope();
                     var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
 
@@ -99,6 +60,8 @@ public class KafkaEventConsumer : BackgroundService
                     {
                         await HandleSeatUnavailableAsync(result.Message.Value, bookingRepo, stoppingToken);
                     }
+
+                    _consumer.StoreOffset(result);
 
                     _consumer.Commit(result);
 
