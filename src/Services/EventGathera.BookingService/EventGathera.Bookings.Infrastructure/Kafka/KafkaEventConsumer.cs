@@ -17,14 +17,11 @@ public class KafkaEventConsumer : BackgroundService
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<KafkaEventConsumer> _logger;
 
-    private readonly IOutboxRepository _outboxRepository;
-
-    public KafkaEventConsumer(IConsumer<string, string> consumer, IServiceScopeFactory serviceScopeFactory, ILogger<KafkaEventConsumer> logger, IOutboxRepository outboxRepository)
+    public KafkaEventConsumer(IConsumer<string, string> consumer, IServiceScopeFactory serviceScopeFactory, ILogger<KafkaEventConsumer> logger)
     {
         _consumer = consumer;
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
-        _outboxRepository = outboxRepository;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,14 +49,15 @@ public class KafkaEventConsumer : BackgroundService
 
                     using var scope = _serviceScopeFactory.CreateScope();
                     var bookingRepo = scope.ServiceProvider.GetRequiredService<IBookingRepository>();
+                    var outboxRepository = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
 
                     if (result.Topic == KafkaTopics.EventSeatReservedTopic)
                     {
-                        await HandleSeatReservedAsync(result.Message.Value, bookingRepo, stoppingToken);
+                        await HandleSeatReservedAsync(result.Message.Value, bookingRepo, outboxRepository, stoppingToken);
                     }
                     else if (result.Topic == KafkaTopics.EventSeatUnavailableTopic)
                     {
-                        await HandleSeatUnavailableAsync(result.Message.Value, bookingRepo, stoppingToken);
+                        await HandleSeatUnavailableAsync(result.Message.Value, bookingRepo, outboxRepository, stoppingToken);
                     }
 
                     _consumer.StoreOffset(result);
@@ -91,7 +89,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task HandleSeatUnavailableAsync(string value, IBookingRepository bookingRepo, CancellationToken stoppingToken)
+    private async Task HandleSeatUnavailableAsync(string value, IBookingRepository bookingRepo, IOutboxRepository outboxRepo, CancellationToken stoppingToken)
     {
         try
         {
@@ -136,7 +134,7 @@ public class KafkaEventConsumer : BackgroundService
                 JsonSerializer.Serialize(bookingRejected)
             );
 
-            await _outboxRepository.AddAsync(outboxMessage, stoppingToken);
+            await outboxRepo.AddAsync(outboxMessage, stoppingToken);
 
             await bookingRepo.SaveChangesAsync(stoppingToken);
 
@@ -157,7 +155,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task HandleSeatReservedAsync(string value, IBookingRepository bookingRepo, CancellationToken stoppingToken)
+    private async Task HandleSeatReservedAsync(string value, IBookingRepository bookingRepo, IOutboxRepository outboxRepo, CancellationToken stoppingToken)
     {
         try
         {
@@ -201,7 +199,7 @@ public class KafkaEventConsumer : BackgroundService
                 JsonSerializer.Serialize(bookingConfirmed)
             );
 
-            await _outboxRepository.AddAsync(outboxMessage, stoppingToken);
+            await outboxRepo.AddAsync(outboxMessage, stoppingToken);
 
 
             await bookingRepo.SaveChangesAsync(stoppingToken);
