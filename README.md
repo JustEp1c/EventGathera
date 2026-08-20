@@ -168,6 +168,7 @@ EventGathera/
 │           ├── Infrastructure/
 │           └── Presentation/
 │
+├── tests/
 ├── docker-compose.yml
 └── README.md
 ```
