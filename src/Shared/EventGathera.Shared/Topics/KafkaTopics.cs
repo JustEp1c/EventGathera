@@ -7,4 +7,5 @@ public static class KafkaTopics
     public const string EventSeatUnavailableTopic = "event-seat-unavailable";
     public const string BookingConfirmedTopic = "booking-confirmed";
     public const string BookingRejectedTopic = "booking-rejected";
+    public const string BookingCancelledTopic = "booking-cancelled";
 }

@@ -1,8 +1,10 @@
-﻿using EventGathera.Bookings.Application.Repositories.Interfaces;
+﻿using EventGathera.Bookings.Application.Kafka;
+using EventGathera.Bookings.Application.Repositories.Interfaces;
 using EventGathera.Bookings.Application.Services.Interfaces;
 using EventGathera.Bookings.Domain.Enums;
 using EventGathera.Bookings.Domain.Exceptions;
 using EventGathera.Bookings.Entities.Domain;
+using EventGathera.Shared.Contracts;
 
 namespace EventGathera.Bookings.Application.Services.Implementations;
 
@@ -13,9 +15,12 @@ public class BookingService : IBookingService
 
     private readonly IBookingRepository _bookingRepository;
 
-    public BookingService(IBookingRepository bookingRepository)
+    private readonly IEventPublisher _eventPublisher;
+
+    public BookingService(IBookingRepository bookingRepository, IEventPublisher eventPublisher)
     {
         _bookingRepository = bookingRepository;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task CancelBookingAsync(Guid bookingId, Guid userId, Roles role, CancellationToken ct = default)
@@ -32,13 +37,22 @@ public class BookingService : IBookingService
             throw new InvalidOperationException($"Бронь с ID {bookingId} уже отменена");
         }
 
-        //TODO: отправка сообщения на отмену
-
         if (role == Roles.Admin || foundBooking.UserId == userId)
         {
             foundBooking.Cancel();
 
             await _bookingRepository.SaveChangesAsync(ct);
+
+            var bookingCancelledMessage = new BookingCancelled
+            {
+                EventId = foundBooking.EventId,
+                BookingId = foundBooking.Id,
+                UserId = foundBooking.UserId,
+                CancelledAt = DateTime.UtcNow
+            };
+
+            await _eventPublisher.PublishBookingCancelledAsync(bookingCancelledMessage, ct);
+
         }
         else
         {

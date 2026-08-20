@@ -29,9 +29,13 @@ public class KafkaEventConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _consumer.Subscribe(KafkaTopics.BookingCreatedTopic);
+        _consumer.Subscribe(
+        [
+            KafkaTopics.BookingCreatedTopic,
+            KafkaTopics.BookingCancelledTopic
+        ]);
 
-        _logger.LogInformation("Подписан на топик: {Topic}", KafkaTopics.BookingCreatedTopic);
+        _logger.LogInformation("Подписан на топики: {Topics}", string.Join(", ", KafkaTopics.BookingCreatedTopic, KafkaTopics.BookingCancelledTopic));
 
         try
         {
@@ -54,7 +58,14 @@ public class KafkaEventConsumer : BackgroundService
                     using var scope = _serviceScopeFactory.CreateScope();
                     var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
 
-                    await ProcessMessageAsync(result.Message, eventRepository, stoppingToken);
+                    if (result.Topic == KafkaTopics.BookingCreatedTopic)
+                    {
+                        await ProcessBookingCreatedAsync(result.Message, eventRepository, stoppingToken);
+                    }
+                    else if (result.Topic == KafkaTopics.BookingCancelledTopic)
+                    {
+                        await ProcessBookingCancelledAsync(result.Message, eventRepository, stoppingToken);
+                    }
 
                     _consumer.StoreOffset(result);
                     _consumer.Commit(result);
@@ -84,7 +95,46 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessMessageAsync(Message<string, string> message, IEventRepository eventRepository, CancellationToken stoppingToken)
+    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventRepository eventRepository, CancellationToken stoppingToken)
+    {
+        try
+        {
+            var bookingCancelled = JsonSerializer.Deserialize<BookingCancelled>(message.Value);
+
+            if (bookingCancelled == null)
+            {
+                _logger.LogWarning("Не удалось десериализовать BookingCancelled");
+                return;
+            }
+
+            var foundEvent = await eventRepository.GetEventByIdAsync(bookingCancelled.EventId, stoppingToken);
+
+            if (foundEvent == null)
+            {
+                _logger.LogWarning(
+                    "Событие {EventId} не найдено для отмены брони {BookingId}",
+                    bookingCancelled.EventId,
+                    bookingCancelled.BookingId);
+                return;
+            }
+
+            foundEvent.ReleaseSeats();
+
+            await eventRepository.SaveChangesAsync(stoppingToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Ошибка десериализации BookingCancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка обработки BookingCancelled: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, CancellationToken stoppingToken)
     {
         try
         {
@@ -92,7 +142,7 @@ public class KafkaEventConsumer : BackgroundService
 
             if (bookingCreated == null)
             {
-                _logger.LogWarning("Не удалось десериализовать сообщение");
+                _logger.LogWarning("Не удалось десериализовать BookingCreated");
                 return;
             }
 
@@ -177,12 +227,12 @@ public class KafkaEventConsumer : BackgroundService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Ошибка десериализации JSON");
+            _logger.LogError(ex, "Ошибка десериализации BookingCreated");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка обработки сообщения: {Message}", ex.Message);
+            _logger.LogError(ex, "Ошибка обработки BookingCreated: {Message}", ex.Message);
             throw;
         }
     }

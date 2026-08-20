@@ -8,4 +8,5 @@ public interface IEventPublisher
     Task PublishBookingCreatedAsync(BookingCreated @event, CancellationToken ct = default);
     Task PublishBookingConfirmedAsync(BookingConfirmed @event, CancellationToken ct = default);
     Task PublishBookingRejectedAsync(BookingRejected @event, CancellationToken ct = default);
+    Task PublishBookingCancelledAsync(BookingCancelled @event, CancellationToken ct = default);
 }

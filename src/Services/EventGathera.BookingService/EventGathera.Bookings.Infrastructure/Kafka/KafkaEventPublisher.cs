@@ -40,6 +40,11 @@ public class KafkaEventPublisher : IEventPublisher, IDisposable
         await PublishAsync(KafkaTopics.BookingRejectedTopic, @event.EventId.ToString(), @event, ct);
     }
 
+    public async Task PublishBookingCancelledAsync(BookingCancelled @event, CancellationToken ct = default)
+    {
+        await PublishAsync(KafkaTopics.BookingCancelledTopic, @event.EventId.ToString(), @event, ct);
+    }
+
     private async Task PublishAsync<T>(string topic, string key, T message, CancellationToken ct)
     {
         try
