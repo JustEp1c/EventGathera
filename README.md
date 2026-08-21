@@ -6,6 +6,7 @@
 - .NET 10
 - ASP.NET Core Web API
 - Entity Framework Core
+- Apache Kafka (асинхронное взаимодействие)
 - PostgreSQL
 - Swagger/OpenAPI
 - xUnit для тестирования
@@ -15,21 +16,160 @@
 - .NET SDK 10
 - PostgreSQL 16 или выше
 - IDE или редактор кода
+- Docker
+
+
+## Архитектура системы
+
+Система представляет собой **три независимых микросервиса**, каждый со своей базой данных и зоной ответственности. Сервисы общаются асинхронно через **Apache Kafka**, что обеспечивает слабую связанность и отказоустойчивость.
+
+### Состав системы
+
+| Сервис | Порт | База данных | Назначение |
+|--------|------|-------------|------------|
+| **Users Service** | 5000 | `users_db` | Регистрация, аутентификация, выдача JWT-токенов |
+| **Events Service** | 5001 | `events_db` | Управление событиями (CRUD) и учёт доступных мест |
+| **Bookings Service** | 5002 | `bookings_db` | Создание и отмена броней |
+
+### Инфраструктура
+
+| Компонент | Порт | Назначение |
+|-----------|------|------------|
+| **Kafka** | 9092 | Брокер сообщений для асинхронного обмена |
+| **Zookeeper** | 2181 | Координация Kafka |
+| **PostgreSQL** | 5432-5434 | Три отдельных экземпляра (по одному на сервис) |
+
+---
+
+## Поток данных при бронировании
+
+### Схема взаимодействия
+
+```text
+┌─────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
+│   Клиент    │     │  Bookings Service   │     │  Events Service     │
+│             │     │    (Порт 5002)      │     │    (Порт 5001)      │
+└──────┬──────┘     └──────────┬──────────┘     └──────────┬──────────┘
+       │                       │                           │
+       │ POST /events/{id}/book│                           │
+       │──────────────────────>│                           │
+       │                       │                           │
+       │                       │ 1. Создаёт бронь          │
+       │                       │    (статус Pending)       │
+       │                       │                           │
+       │                       │ 2. Публикует событие      │
+       │                       │    BookingCreated         │
+       │                       │──────────────────────────>│
+       │                       │    (топик: booking-created)│
+       │                       │                           │
+       │  202 Accepted         │                           │
+       │<──────────────────────│                           │
+       │                       │                           │
+       │                       │                           │ 3. Валидирует событие:
+       │                       │                           │    - существует ли
+       │                       │                           │    - не началось ли
+       │                       │                           │    - есть ли места
+       │                       │                           │
+       │                       │                           │ 4. Уменьшает
+       │                       │                           │    AvailableSeats
+       │                       │                           │
+       │                       │ 5. Публикует ответ        │
+       │                       │<──────────────────────────│
+       │                       │    EventSeatReserved      │
+       │                       │    (топик: event-seat-reserved)
+       │                       │                           │
+       │                       │    ИЛИ                     │
+       │                       │<──────────────────────────│
+       │                       │    EventSeatUnavailable   │
+       │                       │    (топик: event-seat-unavailable)
+       │                       │                           │
+       │                       │ 6. Обновляет статус       │
+       │                       │    брони: Confirmed /     │
+       │                       │    Rejected               │
+       │                       │                           │
+       │ GET /bookings/{id}   │                           │
+       │──────────────────────>│                           │
+       │                       │                           │
+       │   Актуальный статус  │                           │
+       │<──────────────────────│                           │
+       │                       │                           │
+```
+
+### Топики Kafka
+
+| Топик | Издатель | Подписчик | Назначение |
+|-------|----------|-----------|------------|
+| `booking-created` | **Bookings Service** | **Events Service** | Уведомление о создании новой брони. Содержит идентификаторы брони, события и пользователя |
+| `event-seat-reserved` | **Events Service** | **Bookings Service** | Подтверждение резервации мест. Содержит количество зарезервированных мест и обновлённое количество доступных мест |
+| `event-seat-unavailable` | **Events Service** | **Bookings Service** | Отказ в резервации с указанием причины (событие не найдено, нет мест, событие уже началось) |
+| `booking-confirmed` | **Bookings Service** | **Events Service** (опционально) | Бронь успешно подтверждена. Пока не используется |
+| `booking-rejected` | **Bookings Service** | **Events Service** (опционально) | Бронь отклонена с указанием причины. Пока не используется |
+
+### Детальный поток
+
+1. Создание брони (Bookings Service)
+
+- Пользователь отправляет POST /events/{id}/book
+
+- Сервис создаёт бронь со статусом Pending
+
+- Сохраняет в свою базу данных
+
+- Публикует событие BookingCreated в Kafka
+
+2. Валидация (Events Service)
+
+- Получает BookingCreated из Kafka
+
+- Проверяет существование события
+
+- Проверяет, не началось ли событие
+
+- Проверяет наличие свободных мест
+
+- Если всё ОК: уменьшает AvailableSeats и публикует EventSeatReserved
+
+- Если ошибка: публикует EventSeatUnavailable с причиной
+
+3. Обновление статуса (Bookings Service)
+
+- Получает EventSeatReserved или EventSeatUnavailable
+
+- Обновляет статус брони (Confirmed или Rejected)
+
+- Сохраняет изменения в своей базе
 
 ## Структура проекта
 
-Проект построен на основе чистой архитектуры (Clean Architecture) с разделением на четыре основных слоя:
+Проект построен на основе чистой архитектуры (Clean Architecture), сервисы делятся на четыре основных слоя:
 
 ```text
 EventGathera/
 ├── src/
-│   ├── EventGathera.Domain/          # Доменный слой
-│   ├── EventGathera.Application/     # Слой приложения
-│   ├── EventGathera.Infrastructure/  # Инфраструктурный слой
-│   └── EventGathera.Presentation/    # Слой представления
+│   ├── shared/
+│   │   └── EventGathera.Shared/          # Общие контракты и топики
+│   │
+│   └── services/
+│       ├── EventGathera.UsersService/    # Сервис пользователей
+│       │   ├── Domain/
+│       │   ├── Application/
+│       │   ├── Infrastructure/
+│       │   └── Presentation/
+│       │
+│       ├── EventGathera.EventsService/   # Сервис событий
+│       │   ├── Domain/
+│       │   ├── Application/
+│       │   ├── Infrastructure/
+│       │   └── Presentation/
+│       │
+│       └── EventGathera.BookingsService/ # Сервис броней
+│           ├── Domain/
+│           ├── Application/
+│           ├── Infrastructure/
+│           └── Presentation/
+│
 ├── tests/
-│   ├── EventGathera.Tests/           # Модульные тесты
-│   └── EventGathera.IntegrationTests/# Интеграционные тесты
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -101,40 +241,58 @@ Composition Root - настройка DI контейнера в Program.cs
 
 ## Инструкция для запуска проекта
 
-1. Склонируйте репозиторий:
+## Запуск через Docker Compose
 
 ```bash
+# 1. Клонирование репозитория
 git clone https://github.com/JustEp1c/EventGathera.git
-```
-2. Перейдите в папку проекта:
-
-```bash
 cd EventGathera
+
+# 2. Запуск всей системы
+docker-compose up -d
+
+# 3. Проверка статуса
+docker-compose ps
+
+# 4. Просмотр логов
+docker-compose logs -f
 ```
 
-3. Восстановите зависимости:
+Доступ к сервисам после запуска (Сервис	- Swagger UI)
+
+Users Service	http://localhost:5000/swagger
+Events Service	http://localhost:5001/swagger
+Bookings Service	http://localhost:5002/swagger
+
+## Локальный запуск (без Docker)
 
 ```bash
-dotnet restore
+# 1. Убедитесь, что PostgreSQL и Kafka запущены
+docker-compose up -d postgres kafka
+
+# 2. Запуск сервисов по отдельности (в разных терминалах)
+
+# Users Service
+dotnet run --project src/services/EventGathera.UsersService/EventGathera.Users.Presentation
+
+# Events Service
+dotnet run --project src/services/EventGathera.EventsService/EventGathera.Events.Presentation
+
+# Bookings Service
+dotnet run --project src/services/EventGathera.BookingsService/EventGathera.Bookings.Presentation
 ```
 
-4. Запустите приложение:
+### Запуск конкретного сервиса
 
 ```bash
-dotnet run --project .\src\EventGathera.Presentation\
-```
+# Пересобрать и перезапустить конкретный сервис
+docker-compose up -d --build bookings-service
 
-После запуска в консоли будет отображён адрес приложения:
+# Перезапустить сервис
+docker-compose restart events-service
 
-```bash
-https://localhost:7153
-http://localhost:5163
-```
-
-После запуска документация Swagger будет доступна в браузере по адресу:
-
-```bash
-https://localhost:7153/swagger
+# Посмотреть логи конкретного сервиса
+docker-compose logs -f users-servicez`
 ```
 
 ## Инструкция по запуску тестов
@@ -276,7 +434,7 @@ POST /events/123e4567-e89b-12d3-a456-426614174000/book
 
 * Обрабатывает каждую бронь (имитация обработки занимает 5 секунд)
 
-* После успешной обработки меняет статус на Confirmed и устанавливает ProcessedAt
+* После успешной обработки отправляет сообщение BookingCreated
 
 3. Получение статуса: Клиент может GET запросом на /api/bookings/{id} проверить текущий статус брони
 

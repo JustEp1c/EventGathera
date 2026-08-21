@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../../Shared/EventGathera.Shared/EventGathera.Shared.csproj" />
+  <Project Path="EventGathera.Bookings.Application/EventGathera.Bookings.Application.csproj" Id="e603fb6a-f850-45bf-b33b-1e44d7055bca" />
+  <Project Path="EventGathera.Bookings.Domain/EventGathera.Bookings.Domain.csproj" Id="8651eebb-f95f-4c03-8bb9-7f0751b135b2" />
+  <Project Path="EventGathera.Bookings.Infrastructure/EventGathera.Bookings.Infrastructure.csproj" Id="ddcd6501-481c-4c28-9329-f419206a77fc" />
+  <Project Path="EventGathera.Bookings.Presentation/EventGathera.Bookings.Presentation.csproj" Id="f3f4683c-fc54-4446-918e-fe2f7be32c0b" />
+</Solution>
