@@ -1,4 +1,5 @@
-﻿using EventGathera.Events.Application.DTO.Requests;
+﻿using EventGathera.Events.Application.Cache;
+using EventGathera.Events.Application.DTO.Requests;
 using EventGathera.Events.Application.DTO.Responses;
 using EventGathera.Events.Application.Repositories.Interfaces;
 using EventGathera.Events.Application.Services.Interfaces;
@@ -14,9 +15,14 @@ public class EventService : IEventService
 {
     private readonly IEventRepository _eventrepository;
 
-    public EventService(IEventRepository eventrepository)
+    private readonly ICacheService _cacheService;
+
+    private const int EventTTL = 5;
+
+    public EventService(IEventRepository eventrepository, ICacheService cacheService)
     {
         _eventrepository = eventrepository;
+        _cacheService = cacheService;
     }
 
     /// <inheritdoc/>
@@ -62,12 +68,21 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public async Task<Event> GetEventByIdAsync(Guid id, CancellationToken ct)
     {
+        var cache = await _cacheService.GetEventByIdAsync(id);
+
+        if (cache is not null)
+        {
+            return cache;
+        }
+
         var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
             throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
+
+        await _cacheService.SetEventAsync(foundEvent, EventTTL);
 
         return foundEvent;
     }
@@ -86,6 +101,8 @@ public class EventService : IEventService
         await _eventrepository.AddEventAsync(newEvent, ct);
 
         await _eventrepository.SaveChangesAsync(ct);
+
+        await _cacheService.SetEventAsync(newEvent, EventTTL);
 
         return newEvent;
     }
@@ -106,6 +123,8 @@ public class EventService : IEventService
         foundEvent.EndAt = request.EndAt;
 
         await _eventrepository.SaveChangesAsync(ct);
+
+        await _cacheService.RemoveEventByIdAsync(id);
     }
 
 
@@ -122,6 +141,8 @@ public class EventService : IEventService
         _eventrepository.RemoveEvent(foundEvent, ct);
 
         await _eventrepository.SaveChangesAsync(ct);
+
+        await _cacheService.RemoveEventByIdAsync(id);
     }
 
 }

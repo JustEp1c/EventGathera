@@ -1,7 +1,9 @@
 ﻿using Confluent.Kafka;
+using EventGathera.Events.Application.Cache;
 using EventGathera.Events.Application.Kafka;
 using EventGathera.Events.Application.Repositories.Interfaces;
 using EventGathera.Events.Infrastructure.BackgroundServices;
+using EventGathera.Events.Infrastructure.Cache;
 using EventGathera.Events.Infrastructure.DataAccess;
 using EventGathera.Events.Infrastructure.Kafka;
 using EventGathera.Events.Infrastructure.Repositories.Implementations;
@@ -41,6 +43,8 @@ public static class RegisterInfrastructureExtension
     {
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IProcessedMessageRepository, ProcessedMessageRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<ICacheService, CacheService>();
 
         return services;
     }
@@ -84,7 +88,6 @@ public static class RegisterInfrastructureExtension
 
         services.AddHostedService<KafkaEventConsumer>();
 
-        services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddHostedService<OutboxRelayService>();
 
         return services;

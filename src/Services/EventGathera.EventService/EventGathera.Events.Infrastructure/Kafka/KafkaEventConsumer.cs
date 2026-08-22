@@ -1,7 +1,6 @@
 ﻿using Confluent.Kafka;
-using EventGathera.Events.Application.Kafka;
+using EventGathera.Events.Application.Cache;
 using EventGathera.Events.Application.Repositories.Interfaces;
-using EventGathera.Events.Application.Services.Implementations;
 using EventGathera.Events.Application.Services.Interfaces;
 using EventGathera.Events.Domain.Entities;
 using EventGathera.Shared.Contracts;
@@ -56,17 +55,18 @@ public class KafkaEventConsumer : BackgroundService
                         result.Offset.Value);
 
                     using var scope = _serviceScopeFactory.CreateScope();
-                    var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
+                    var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
                     var processedMessageRepo = scope.ServiceProvider.GetRequiredService<IProcessedMessageRepository>();
                     var outboxRepo = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
+                    var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
 
                     if (result.Topic == KafkaTopics.BookingCreatedTopic)
                     {
-                        await ProcessBookingCreatedAsync(result.Message, eventRepository, processedMessageRepo, outboxRepo, stoppingToken);
+                        await ProcessBookingCreatedAsync(result.Message, eventService, processedMessageRepo, outboxRepo, cacheService, stoppingToken);
                     }
                     else if (result.Topic == KafkaTopics.BookingCancelledTopic)
                     {
-                        await ProcessBookingCancelledAsync(result.Message, eventRepository, processedMessageRepo, stoppingToken);
+                        await ProcessBookingCancelledAsync(result.Message, eventService, processedMessageRepo, cacheService, stoppingToken);
                     }
 
                     _consumer.StoreOffset(result);
@@ -97,7 +97,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, CancellationToken stoppingToken)
+    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventService eventRepository, IProcessedMessageRepository processedMessageRepository, ICacheService cacheService, CancellationToken stoppingToken)
     {
         try
         {
@@ -135,7 +135,9 @@ public class KafkaEventConsumer : BackgroundService
             var processedMessage = new ProcessedMessage(messageId, "BookingCancelled");
             await processedMessageRepository.AddAsync(processedMessage, stoppingToken);
 
-            await eventRepository.SaveChangesAsync(stoppingToken);
+            await processedMessageRepository.SaveChangesAsync(stoppingToken);
+
+            await cacheService.RemoveEventByIdAsync(foundEvent.Id);
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
         {
@@ -155,7 +157,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, IOutboxRepository outboxRepository, CancellationToken stoppingToken)
+    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventService eventRepository, IProcessedMessageRepository processedMessageRepository, IOutboxRepository outboxRepository, ICacheService cacheService, CancellationToken stoppingToken)
     {
         try
         {
@@ -237,7 +239,9 @@ public class KafkaEventConsumer : BackgroundService
            );
             await outboxRepository.AddAsync(outboxMessage, stoppingToken);
 
-            await eventRepository.SaveChangesAsync(stoppingToken);
+            await outboxRepository.SaveChangesAsync(stoppingToken);
+
+            await cacheService.RemoveEventByIdAsync(foundEvent.Id);
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
         {
