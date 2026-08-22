@@ -15,7 +15,7 @@ public interface ICacheService
     Task<Event?> GetEventByIdAsync(Guid id);
 
     /// <summary>
-    /// Положить событие в кеш
+    /// Сохранить событие в кеш
     /// </summary>
     /// <param name="event"></param>
     /// <param name="ttl"></param>
@@ -28,4 +28,20 @@ public interface ICacheService
     /// <param name="event"></param>
     /// <returns></returns>
     Task RemoveEventByIdAsync(Guid id);
+
+    /// <summary>
+    /// Получить топ событий из кеша
+    /// </summary>
+    /// <param name="topCount"></param>
+    /// <returns></returns>
+    Task<List<Event>?> GetTopEvents(int topCount);
+
+    /// <summary>
+    /// Сохранить топ событий в кеш
+    /// </summary>
+    /// <param name="top"></param>
+    /// <param name="topCount"></param>
+    /// <param name="topEventsTTL"></param>
+    /// <returns></returns>
+    Task SetTopEvents(List<Event> top, int topCount, int topEventsTTL);
 }

@@ -80,14 +80,28 @@ namespace EventGathera.Presentation.Controllers
         /// Удалить событие
         /// </summary>
         /// <param name="id">Уникальный идентификатор</param>
+        /// <param name="ct"></param>
         /// <returns>204, если событие удалено</returns>
         [Authorize(Roles = nameof(Roles.Admin))]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEvent(Guid id)
+        public async Task<IActionResult> DeleteEvent(Guid id, CancellationToken ct)
         {
-            await _eventService.DeleteEventAsync(id);
+            await _eventService.DeleteEventAsync(id, ct);
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Получить топ-10 событий с наибольшим процентом проданных мест
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns>200, топ-10 событий</returns>
+        [HttpGet("top")]
+        public async Task<ActionResult<List<Event>>> GetTopEvents(CancellationToken ct)
+        {
+            var top = await _eventService.GetTopEventsAsync(ct);
+
+            return top;
         }
     }
 }

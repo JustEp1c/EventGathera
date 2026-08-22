@@ -13,22 +13,26 @@ namespace EventGathera.Events.Application.Services.Implementations;
 /// <inheritdoc/>
 public class EventService : IEventService
 {
-    private readonly IEventRepository _eventrepository;
+    private readonly IEventRepository _eventRepository;
 
     private readonly ICacheService _cacheService;
 
     private const int EventTTL = 5;
 
-    public EventService(IEventRepository eventrepository, ICacheService cacheService)
+    private const int TopEventsTTL = 10;
+
+    private const int TopCount = 10;
+
+    public EventService(IEventRepository eventRepository, ICacheService cacheService)
     {
-        _eventrepository = eventrepository;
+        _eventRepository = eventRepository;
         _cacheService = cacheService;
     }
 
     /// <inheritdoc/>
     public async Task<PaginatedResult<Event>> GetAllEventsAsync(EventQueryParams queryParams, CancellationToken ct)
     {
-        IQueryable<Event> events = _eventrepository.GetAllEventsQuery();
+        IQueryable<Event> events = _eventRepository.GetAllEventsQuery();
 
         if (!string.IsNullOrWhiteSpace(queryParams.Title))
         {
@@ -75,7 +79,7 @@ public class EventService : IEventService
             return cache;
         }
 
-        var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
+        var foundEvent = await _eventRepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
@@ -98,9 +102,9 @@ public class EventService : IEventService
             request.Description
         );
 
-        await _eventrepository.AddEventAsync(newEvent, ct);
+        await _eventRepository.AddEventAsync(newEvent, ct);
 
-        await _eventrepository.SaveChangesAsync(ct);
+        await _eventRepository.SaveChangesAsync(ct);
 
         await _cacheService.SetEventAsync(newEvent, EventTTL);
 
@@ -110,7 +114,7 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public async Task UpdateEventAsync(Guid id, EventRequest request, CancellationToken ct)
     {
-        var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
+        var foundEvent = await _eventRepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
@@ -122,7 +126,7 @@ public class EventService : IEventService
         foundEvent.StartAt = request.StartAt;
         foundEvent.EndAt = request.EndAt;
 
-        await _eventrepository.SaveChangesAsync(ct);
+        await _eventRepository.SaveChangesAsync(ct);
 
         await _cacheService.RemoveEventByIdAsync(id);
     }
@@ -131,18 +135,33 @@ public class EventService : IEventService
     /// <inheritdoc/>
     public async Task DeleteEventAsync(Guid id, CancellationToken ct)
     {
-        var foundEvent = await _eventrepository.GetEventByIdAsync(id, ct);
+        var foundEvent = await _eventRepository.GetEventByIdAsync(id, ct);
 
         if (foundEvent is null)
         {
             throw new ResourceNotFoundException($"Событие с ID {id} не найдено", id);
         }
 
-        _eventrepository.RemoveEvent(foundEvent, ct);
+        _eventRepository.RemoveEvent(foundEvent, ct);
 
-        await _eventrepository.SaveChangesAsync(ct);
+        await _eventRepository.SaveChangesAsync(ct);
 
         await _cacheService.RemoveEventByIdAsync(id);
     }
 
+    public async Task<List<Event>> GetTopEventsAsync(CancellationToken ct)
+    {
+        var cachedTop = await _cacheService.GetTopEvents(TopCount);
+
+        if (cachedTop is not null)
+        {
+            return cachedTop;
+        }
+
+        var top = await _eventRepository.GetTopEventsAsync(TopCount, ct);
+
+        await _cacheService.SetTopEvents(top, TopCount, TopEventsTTL);
+
+        return top;
+    }
 }

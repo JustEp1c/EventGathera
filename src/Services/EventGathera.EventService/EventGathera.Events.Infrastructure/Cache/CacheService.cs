@@ -69,4 +69,42 @@ public class CacheService : ICacheService
             _logger.LogWarning(ex, "Redis недоступен при SET для Event {EventId}", @event.Id);
         }
     }
+
+    public async Task<List<Event>?> GetTopEvents(int topCount)
+    {
+        try
+        {
+            var key = $"events:top{topCount}";
+
+            var cached = await _db.StringGetAsync(key);
+
+            if (!cached.HasValue)
+            {
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<List<Event>>(cached.ToString()) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis недоступен при GET для топа событий");
+            return null;
+        }
+    }
+
+    public async Task SetTopEvents(List<Event> top, int topCount, int topEventsTTL)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(top);
+
+            var key = $"events:top{topCount}";
+
+            await _db.StringSetAsync(key, json, TimeSpan.FromMinutes(topEventsTTL));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis недоступен при SET для топа событий");
+        }
+    }
 }

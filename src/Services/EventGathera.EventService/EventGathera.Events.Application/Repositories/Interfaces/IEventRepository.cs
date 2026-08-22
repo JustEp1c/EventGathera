@@ -37,6 +37,14 @@ public interface IEventRepository
     void RemoveEvent(Event @event, CancellationToken ct = default);
 
     /// <summary>
+    /// Получить топ-10 событий с наибольшим процентом проданных мест
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <param name="count"></param>
+    /// <returns>топ-10 событий</returns>
+    Task<List<Event>> GetTopEventsAsync(int count, CancellationToken ct = default);
+
+    /// <summary>
     /// Сохранить изменения
     /// </summary>
     /// <param name="ct"></param>
