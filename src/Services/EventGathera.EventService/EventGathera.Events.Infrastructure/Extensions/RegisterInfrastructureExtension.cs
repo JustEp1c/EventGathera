@@ -8,6 +8,7 @@ using EventGathera.Events.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 namespace EventGathera.Events.Infrastructure.Extensions;
 
 public static class RegisterInfrastructureExtension
@@ -19,6 +20,7 @@ public static class RegisterInfrastructureExtension
         services.AddEventsDbContext(configuration);
         services.AddRepositories();
         services.AddKafka(configuration);
+        services.AddRedis(configuration);
 
         return services;
     }
@@ -84,6 +86,26 @@ public static class RegisterInfrastructureExtension
 
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddHostedService<OutboxRelayService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddRedis(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var options = new ConfigurationOptions
+            {
+                EndPoints = { configuration["Redis:EndPoints"] },
+                Password = configuration["Redis:Password"],
+                ConnectTimeout = 5000,
+                SyncTimeout = 3000,
+                AbortOnConnectFail = false,
+                ConnectRetry = 3
+            };
+
+            return ConnectionMultiplexer.Connect(options);
+        });
 
         return services;
     }
