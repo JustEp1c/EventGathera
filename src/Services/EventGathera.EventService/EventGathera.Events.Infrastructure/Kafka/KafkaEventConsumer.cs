@@ -55,18 +55,18 @@ public class KafkaEventConsumer : BackgroundService
                         result.Offset.Value);
 
                     using var scope = _serviceScopeFactory.CreateScope();
-                    var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+                    var eventRepo = scope.ServiceProvider.GetRequiredService<IEventRepository>();
                     var processedMessageRepo = scope.ServiceProvider.GetRequiredService<IProcessedMessageRepository>();
                     var outboxRepo = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
                     var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
 
                     if (result.Topic == KafkaTopics.BookingCreatedTopic)
                     {
-                        await ProcessBookingCreatedAsync(result.Message, eventService, processedMessageRepo, outboxRepo, cacheService, stoppingToken);
+                        await ProcessBookingCreatedAsync(result.Message, eventRepo, processedMessageRepo, outboxRepo, cacheService, stoppingToken);
                     }
                     else if (result.Topic == KafkaTopics.BookingCancelledTopic)
                     {
-                        await ProcessBookingCancelledAsync(result.Message, eventService, processedMessageRepo, cacheService, stoppingToken);
+                        await ProcessBookingCancelledAsync(result.Message, eventRepo, processedMessageRepo, cacheService, stoppingToken);
                     }
 
                     _consumer.StoreOffset(result);
@@ -97,7 +97,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventService eventRepository, IProcessedMessageRepository processedMessageRepository, ICacheService cacheService, CancellationToken stoppingToken)
+    private async Task ProcessBookingCancelledAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, ICacheService cacheService, CancellationToken stoppingToken)
     {
         try
         {
@@ -157,7 +157,7 @@ public class KafkaEventConsumer : BackgroundService
         }
     }
 
-    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventService eventRepository, IProcessedMessageRepository processedMessageRepository, IOutboxRepository outboxRepository, ICacheService cacheService, CancellationToken stoppingToken)
+    private async Task ProcessBookingCreatedAsync(Message<string, string> message, IEventRepository eventRepository, IProcessedMessageRepository processedMessageRepository, IOutboxRepository outboxRepository, ICacheService cacheService, CancellationToken stoppingToken)
     {
         try
         {
