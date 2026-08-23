@@ -101,10 +101,10 @@ public static class RegisterInfrastructureExtension
             {
                 EndPoints = { configuration["Redis:EndPoints"] },
                 Password = configuration["Redis:Password"],
-                ConnectTimeout = 5000,
-                SyncTimeout = 3000,
+                ConnectTimeout = 2000,
+                SyncTimeout = 1500,
                 AbortOnConnectFail = false,
-                ConnectRetry = 3
+                ConnectRetry = 2
             };
 
             return ConnectionMultiplexer.Connect(options);
