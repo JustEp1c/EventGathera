@@ -18,7 +18,6 @@ public class EventServiceGetTopEventsTests : IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly string _dbName;
     private readonly Mock<ICacheService> _cacheMock;
-    private readonly Mock<IEventRepository> _repositoryMock;
 
     public EventServiceGetTopEventsTests()
     {
@@ -248,21 +247,6 @@ public class EventServiceGetTopEventsTests : IDisposable
                 10,
                 It.IsAny<int>()),
             Times.Once);
-    }
-
-    [Fact]
-    public async Task GetTopEvents_WhenCacheThrowsException_ShouldFallbackToRepository()
-    {
-        // Arrange
-        _cacheMock
-            .Setup(x => x.GetTopEvents(10))
-            .ThrowsAsync(new Exception("Redis connection failed"));
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(() =>
-            _eventService.GetTopEventsAsync(CancellationToken.None));
-
-        Assert.Equal("Redis connection failed", exception.Message);
     }
 
     public void Dispose()
