@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="../../../tests/EventService/IntegrationTests/IntegrationTests.csproj" Id="670f20df-7cbd-4867-a812-5c5c43598b48" />
+  <Project Path="../../../tests/EventService/Tests/Tests.csproj" Id="19d2e3ae-eb0d-4e89-a7ee-af0a948c7d01" />
   <Project Path="../../Shared/EventGathera.Shared/EventGathera.Shared.csproj" />
   <Project Path="EventGathera.Events.Application/EventGathera.Events.Application.csproj" Id="ee9456c9-b70a-4fde-8330-6bea8efdd883" />
   <Project Path="EventGathera.Events.Domain/EventGathera.Events.Domain.csproj" Id="0322357f-f095-4f7b-9a07-669269e9a81d" />
