@@ -14,7 +14,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Events.Tests
 {
-    public class EventServiceUpdateEventTests
+    public class EventServiceUpdateEventTests : IDisposable
     {
         private readonly EventsDbContext _dbContext;
         private readonly IEventService _eventService;

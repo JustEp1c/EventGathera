@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="../../../tests/BookingService/IntegrationTests/IntegrationTests.csproj" Id="57a3e55c-80d4-4a82-abcc-b2d1f7559f51" />
+  <Project Path="../../../tests/BookingService/Tests/Tests.csproj" Id="1fce9948-9d9c-4eef-8b07-103d2b585305" />
   <Project Path="../../Shared/EventGathera.Shared/EventGathera.Shared.csproj" />
   <Project Path="EventGathera.Bookings.Application/EventGathera.Bookings.Application.csproj" Id="e603fb6a-f850-45bf-b33b-1e44d7055bca" />
   <Project Path="EventGathera.Bookings.Domain/EventGathera.Bookings.Domain.csproj" Id="8651eebb-f95f-4c03-8bb9-7f0751b135b2" />

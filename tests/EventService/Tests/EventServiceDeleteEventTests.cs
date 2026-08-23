@@ -12,7 +12,7 @@ using Moq;
 
 namespace EventGathera.Events.Tests
 {
-    public class EventServiceDeleteEventTests
+    public class EventServiceDeleteEventTests : IDisposable
     {
         private readonly EventsDbContext _dbContext;
         private readonly IEventService _eventService;

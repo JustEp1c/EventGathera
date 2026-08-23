@@ -13,7 +13,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventGathera.Events.Tests
 {
-    public class EventServiceGetAllEventsTests
+    public class EventServiceGetAllEventsTests : IDisposable
     {
         private readonly EventsDbContext _dbContext;
         private readonly IEventService _eventService;
