@@ -30,6 +30,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+app.MapPrometheusScrapingEndpoint();
+
 app.UseHttpsRedirection();
 
 app.UseRouting();

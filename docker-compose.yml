@@ -57,6 +57,29 @@ services:
       - redis-data:/data
     networks:
       - event-network
+  # ─────────────────────────── Сервисы системы наблюдаемости ───────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: eventapi-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - event-network
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: eventapi-jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    volumes:
+      - jaeger-data:/badger 
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - event-network
   # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
   users-db:
     image: postgres:16
@@ -134,6 +157,7 @@ services:
       - JwtSettings__Issuer=event-gathera
       - JwtSettings__Audience=event-gathera
       - JwtSettings__ExpiryMinutes=15
+      - Otlp__Endpoint=http://jaeger:4317 
     networks:
       - event-network
     restart: unless-stopped
@@ -164,6 +188,7 @@ services:
       - JwtSettings__Issuer=event-gathera
       - JwtSettings__Audience=event-gathera
       - JwtSettings__ExpiryMinutes=15
+      - Otlp__Endpoint=http://jaeger:4317 
     networks:
       - event-network
     restart: unless-stopped
@@ -190,6 +215,7 @@ services:
       - JwtSettings__Issuer=event-gathera
       - JwtSettings__Audience=event-gathera
       - JwtSettings__ExpiryMinutes=15
+      - Otlp__Endpoint=http://jaeger:4317 
     networks:
       - event-network
     restart: unless-stopped
@@ -199,6 +225,8 @@ volumes:
   events-db-data:
   bookings-db-data:
   redis-data:
+  prometheus-data:
+  jaeger-data:
 
 networks:
   event-network:

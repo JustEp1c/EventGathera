@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>CS1591</NoWarn>
-    <UserSecretsId>18c0981a-5478-4ab2-aadc-1038c985809d</UserSecretsId>
+    <UserSecretsId>f0006471-9527-493c-af42-1af4b0d8b39d</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
@@ -19,20 +19,16 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.1-preview.1" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.18.0-beta.1" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.16.0-beta.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
-    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EventGathera.Bookings.Application\EventGathera.Bookings.Application.csproj" />
-    <ProjectReference Include="..\EventGathera.Bookings.Infrastructure\EventGathera.Bookings.Infrastructure.csproj" />
+    <ProjectReference Include="..\EventGathera.Events.Application\EventGathera.Events.Application.csproj" />
+    <ProjectReference Include="..\EventGathera.Events.Infrastructure\EventGathera.Events.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
