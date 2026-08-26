@@ -80,6 +80,17 @@ services:
       COLLECTOR_OTLP_ENABLED: "true"
     networks:
       - event-network
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: eventapi-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    networks:
+      - event-network 
+    volumes:
+      - grafana-data:/var/lib/grafana
   # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
   users-db:
     image: postgres:16
@@ -227,6 +238,7 @@ volumes:
   redis-data:
   prometheus-data:
   jaeger-data:
+  grafana-data: 
 
 networks:
   event-network:

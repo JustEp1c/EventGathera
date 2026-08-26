@@ -2,10 +2,16 @@ using EventGathera.Presentation.Extensions;
 using EventGathera.Presentation.Extensions.Middleware;
 using EventGathera.Users.Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.RegisterServices(builder.Configuration);
+
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+       .WriteTo.Console(new CompactJsonFormatter()));
 
 var app = builder.Build();
 
