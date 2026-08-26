@@ -31,6 +31,15 @@ public class EventRepository : IEventRepository
         return await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id, cancellationToken: ct);
     }
 
+    public async Task<List<Event>> GetTopEventsAsync(int count, CancellationToken ct = default)
+    {
+        return await _appDbContext.Events
+            .Where(e => e.TotalSeats > 0)
+            .OrderByDescending(e => (double)(e.TotalSeats - e.AvailableSeats) / e.TotalSeats)
+            .Take(count)
+            .ToListAsync(ct);
+    }
+
     public void RemoveEvent(Event @event, CancellationToken ct = default)
     {
         _appDbContext.Events.Remove(@event);

@@ -1,13 +1,16 @@
 ﻿using Confluent.Kafka;
+using EventGathera.Events.Application.Cache;
 using EventGathera.Events.Application.Kafka;
 using EventGathera.Events.Application.Repositories.Interfaces;
 using EventGathera.Events.Infrastructure.BackgroundServices;
+using EventGathera.Events.Infrastructure.Cache;
 using EventGathera.Events.Infrastructure.DataAccess;
 using EventGathera.Events.Infrastructure.Kafka;
 using EventGathera.Events.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 namespace EventGathera.Events.Infrastructure.Extensions;
 
 public static class RegisterInfrastructureExtension
@@ -19,6 +22,7 @@ public static class RegisterInfrastructureExtension
         services.AddEventsDbContext(configuration);
         services.AddRepositories();
         services.AddKafka(configuration);
+        services.AddRedis(configuration);
 
         return services;
     }
@@ -39,6 +43,8 @@ public static class RegisterInfrastructureExtension
     {
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IProcessedMessageRepository, ProcessedMessageRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<ICacheService, CacheService>();
 
         return services;
     }
@@ -82,8 +88,27 @@ public static class RegisterInfrastructureExtension
 
         services.AddHostedService<KafkaEventConsumer>();
 
-        services.AddScoped<IOutboxRepository, OutboxRepository>();
         services.AddHostedService<OutboxRelayService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddRedis(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var options = new ConfigurationOptions
+            {
+                EndPoints = { configuration["Redis:EndPoints"] },
+                Password = configuration["Redis:Password"],
+                ConnectTimeout = 2000,
+                SyncTimeout = 1500,
+                AbortOnConnectFail = false,
+                ConnectRetry = 2
+            };
+
+            return ConnectionMultiplexer.Connect(options);
+        });
 
         return services;
     }

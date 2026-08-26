@@ -40,7 +40,23 @@ services:
       retries: 15
     networks:
       - event-network
-
+  
+  # ─────────────────────────── Сервис кеширования (Redis) ───────────────────────────
+  redis:
+    image: redis:7
+    container_name: eventapi-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - event-network
   # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
   users-db:
     image: postgres:16
@@ -132,6 +148,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "5001:80"
     environment:
@@ -140,6 +158,8 @@ services:
       - ConnectionStrings__DefaultConnection=Host=events-db;Port=5432;Database=events_db;Username=postgres;Password=postgres
       - Kafka__BootstrapServers=kafka:29092
       - Kafka__ConsumerGroup=events-service-group
+      - Redis__EndPoints=redis:6379
+      - Redis__Password=${REDIS_PASSWORD}
       - JwtSettings__Secret=${JWT_SECRET}
       - JwtSettings__Issuer=event-gathera
       - JwtSettings__Audience=event-gathera
@@ -178,6 +198,7 @@ volumes:
   users-db-data:
   events-db-data:
   bookings-db-data:
+  redis-data:
 
 networks:
   event-network:

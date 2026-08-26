@@ -1,18 +1,18 @@
-﻿using EventGathera.Domain;
-using EventGathera.Domain.Enums;
-using EventGathera.Infrastructure.DataAccess;
-using EventGathera.Infrastructure.Repositories.Implementations;
+﻿using EventGathera.Bookings.Domain.Enums;
+using EventGathera.Bookings.Entities.Domain;
+using EventGathera.Bookings.Infrastructure.DataAccess;
+using EventGathera.Bookings.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
-namespace EventGathera.IntegrationTests;
+namespace EventGathera.Bookings.IntegrationTests;
 
 public class BookRepositoryTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")
-        .WithDatabase("eventapi")
+        .WithDatabase("bookings-db")
         .WithUsername("postgres")
         .WithPassword("postgres")
         .Build();
@@ -37,14 +37,14 @@ public class BookRepositoryTests : IAsyncLifetime
         await InitializeAsync();
     }
 
-    private AppDbContext CreateContext()
+    private BookingsDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<BookingsDbContext>()
             .UseNpgsql(_postgres.GetConnectionString())
             .UseSnakeCaseNamingConvention()
             .Options;
 
-        var context = new AppDbContext(options);
+        var context = new BookingsDbContext(options);
         return context;
     }
 
@@ -56,18 +56,6 @@ public class BookRepositoryTests : IAsyncLifetime
         await context.Database.MigrateAsync();
     }
 
-    private async Task<Guid> CreateTestUserAsync(AppDbContext context)
-    {
-        var user = new User(
-            login: $"user_{Guid.NewGuid():N}".Substring(0, 30),
-            passwordHash: "hashedpassword",
-            role: Roles.User
-        );
-        context.Users.Add(user);
-        await context.SaveChangesAsync();
-        return user.Id;
-    }
-
     [Fact]
     public async Task AddBookingAsync_SavesBookingToDatabase()
     {
@@ -75,27 +63,12 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
-        var userId = await CreateTestUserAsync(context);
 
+        var userId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
-        var eventEntity = new Event(
-            title: "Test Event",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: 10,
-            description: "Test Description"
-        )
-        {
-            Id = eventId
-        };
-        context.Events.Add(eventEntity);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var repository = new BookingRepository(context);
-        var booking = new Booking(
-            eventId,
-            userId
-        );
+        var booking = new Booking(eventId, userId);
 
         // Act
         await repository.AddBookingAsync(booking, TestContext.Current.CancellationToken);
@@ -105,9 +78,11 @@ public class BookRepositoryTests : IAsyncLifetime
         await using var verifyContext = CreateContext();
         var saved = await verifyContext.Bookings
             .FirstOrDefaultAsync(b => b.Id == booking.Id, cancellationToken: TestContext.Current.CancellationToken);
+
         Assert.NotNull(saved);
         Assert.Equal(booking.Id, saved.Id);
         Assert.Equal(eventId, saved.EventId);
+        Assert.Equal(userId, saved.UserId);
         Assert.Equal(BookingStatus.Pending, saved.Status);
     }
 
@@ -118,26 +93,11 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
-        var userId = await CreateTestUserAsync(context);
 
+        var userId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
-        var eventEntity = new Event(
-            title: "Test Event",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: 10,
-            description: "Test Description"
-        )
-        {
-            Id = eventId
-        };
-        context.Events.Add(eventEntity);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var booking = new Booking(
-            eventId,
-            userId
-        );
+        var booking = new Booking(eventId, userId);
         context.Bookings.Add(booking);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -150,7 +110,9 @@ public class BookRepositoryTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(booking.Id, result.Id);
         Assert.Equal(booking.EventId, result.EventId);
+        Assert.Equal(booking.UserId, result.UserId);
         Assert.Equal(BookingStatus.Pending, result.Status);
+        Assert.Equal(booking.CreatedAt, result.CreatedAt);
     }
 
     [Fact]
@@ -160,26 +122,10 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
-        var userId = await CreateTestUserAsync(context);
-
+        var userId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
-        var eventEntity = new Event(
-            title: "Test Event",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: 10,
-            description: "Test Description"
-        )
-        {
-            Id = eventId,
-        };
-        context.Events.Add(eventEntity);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var booking = new Booking(
-            eventId,
-            userId
-        );
+        var booking = new Booking(eventId, userId);
         context.Bookings.Add(booking);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -193,9 +139,13 @@ public class BookRepositoryTests : IAsyncLifetime
         await using var verifyContext = CreateContext();
         var saved = await verifyContext.Bookings
             .FirstOrDefaultAsync(b => b.Id == booking.Id, cancellationToken: TestContext.Current.CancellationToken);
+
         Assert.NotNull(saved);
         Assert.Equal(BookingStatus.Confirmed, saved.Status);
         Assert.NotNull(saved.ProcessedAt);
+        Assert.Equal(booking.Id, saved.Id);
+        Assert.Equal(eventId, saved.EventId);
+        Assert.Equal(userId, saved.UserId);
     }
 
     [Fact]
@@ -205,35 +155,9 @@ public class BookRepositoryTests : IAsyncLifetime
 
         // Arrange
         await using var context = CreateContext();
-        var userId = await CreateTestUserAsync(context);
-
+        var userId = Guid.NewGuid();
         var eventId1 = Guid.NewGuid();
         var eventId2 = Guid.NewGuid();
-
-        var event1 = new Event(
-            title: "Event 1",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: 10,
-            description: "Test Event 1"
-        )
-        {
-            Id = eventId1,
-        };
-
-        var event2 = new Event(
-            title: "Event 2",
-            startAt: DateTime.UtcNow.AddDays(3),
-            endAt: DateTime.UtcNow.AddDays(4),
-            totalSeats: 20,
-            description: "Test Event 2"
-        )
-        {
-            Id = eventId2,
-        };
-
-        context.Events.AddRange(event1, event2);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var booking1 = new Booking(eventId1, userId);
         var booking2 = new Booking(eventId2, userId);

@@ -1,5 +1,4 @@
-﻿using EventGathera.Bookings.Application.Kafka;
-using EventGathera.Bookings.Application.Repositories.Interfaces;
+﻿using EventGathera.Bookings.Application.Repositories.Interfaces;
 using EventGathera.Bookings.Application.Services.Interfaces;
 using EventGathera.Bookings.Domain.Entities;
 using EventGathera.Bookings.Domain.Enums;

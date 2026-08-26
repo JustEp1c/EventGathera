@@ -1,26 +1,29 @@
-﻿using EventGathera.Application.DTO.Requests;
-using EventGathera.Application.Repositories.Interfaces;
-using EventGathera.Application.Services.Implementations;
-using EventGathera.Application.Services.Interfaces;
-using EventGathera.Domain;
-using EventGathera.Domain.Exceptions;
-using EventGathera.Infrastructure.DataAccess;
-using EventGathera.Infrastructure.Repositories.Implementations;
+﻿using EventGathera.Events.Application.Cache;
+using EventGathera.Events.Application.DTO.Requests;
+using EventGathera.Events.Application.Repositories.Interfaces;
+using EventGathera.Events.Application.Services.Implementations;
+using EventGathera.Events.Application.Services.Interfaces;
+using EventGathera.Events.Domain.Entities;
+using EventGathera.Events.Domain.Exceptions;
+using EventGathera.Events.Infrastructure.DataAccess;
+using EventGathera.Events.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.ComponentModel.DataAnnotations;
 
-namespace EventGathera.Tests
+namespace EventGathera.Events.Tests
 {
-    public class EventServiceUpdateEventTests
+    public class EventServiceUpdateEventTests : IDisposable
     {
-        private readonly AppDbContext _dbContext;
+        private readonly EventsDbContext _dbContext;
         private readonly IEventService _eventService;
         private readonly IServiceProvider _serviceProvider;
         private readonly string _dbName;
         private readonly Guid _techConferenceId;
         private readonly Guid _musicFestivalId;
         private readonly Guid _aiWorkshopId;
+        private readonly Mock<ICacheService> _cacheMock;
 
         public EventServiceUpdateEventTests()
         {
@@ -32,8 +35,24 @@ namespace EventGathera.Tests
 
             var services = new ServiceCollection();
 
-            services.AddDbContext<AppDbContext>(options =>
+            services.AddDbContext<EventsDbContext>(options =>
                 options.UseInMemoryDatabase(_dbName));
+
+            _cacheMock = new Mock<ICacheService>();
+
+            _cacheMock
+                .Setup(x => x.GetEventByIdAsync(It.IsAny<Guid>()))
+                .ReturnsAsync((Event?)null);
+
+            _cacheMock
+                .Setup(x => x.SetEventAsync(It.IsAny<Event>(), It.IsAny<int>()))
+                .Returns(Task.CompletedTask);
+
+            _cacheMock
+                .Setup(x => x.RemoveEventByIdAsync(It.IsAny<Guid>()))
+                .Returns(Task.CompletedTask);
+
+            services.AddScoped(_ => _cacheMock.Object);
 
             services.AddScoped<IEventService, EventService>();
             services.AddScoped<IEventRepository, EventRepository>();
@@ -41,7 +60,7 @@ namespace EventGathera.Tests
 
             _serviceProvider = services.BuildServiceProvider();
 
-            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _dbContext = _serviceProvider.GetRequiredService<EventsDbContext>();
             _eventService = _serviceProvider.GetRequiredService<IEventService>();
 
             _dbContext.Events.AddRange(new[]
@@ -107,6 +126,10 @@ namespace EventGathera.Tests
             Assert.Equal(updateRequest.Description, updatedEvent.Description);
             Assert.Equal(updateRequest.StartAt, updatedEvent.StartAt);
             Assert.Equal(updateRequest.EndAt, updatedEvent.EndAt);
+
+            _cacheMock.Verify(
+                x => x.RemoveEventByIdAsync(validId),
+                Times.Once);
         }
 
         [Fact]
@@ -128,6 +151,56 @@ namespace EventGathera.Tests
                 _eventService.UpdateEventAsync(nonExistingId, updateRequest));
 
             Assert.Equal($"Событие с ID {nonExistingId} не найдено", exception.Message);
+
+            _cacheMock.Verify(
+                x => x.RemoveEventByIdAsync(It.IsAny<Guid>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateEvent_ShouldInvalidateCache()
+        {
+            // Arrange
+            Guid validId = _techConferenceId;
+            var updateRequest = new EventRequest
+            {
+                Title = "Updated Title",
+                Description = "Updated Description",
+                StartAt = DateTime.Parse("2026-04-15"),
+                EndAt = DateTime.Parse("2026-04-18"),
+                TotalSeats = 150
+            };
+
+            // Act
+            await _eventService.UpdateEventAsync(validId, updateRequest, TestContext.Current.CancellationToken);
+
+            // Assert
+            _cacheMock.Verify(
+                x => x.RemoveEventByIdAsync(validId),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateEvent_ShouldNotSetCacheAfterUpdate()
+        {
+            // Arrange
+            Guid validId = _techConferenceId;
+            var updateRequest = new EventRequest
+            {
+                Title = "Updated Event",
+                Description = "Updated Description",
+                StartAt = DateTime.Parse("2026-04-15"),
+                EndAt = DateTime.Parse("2026-04-18"),
+                TotalSeats = 150
+            };
+
+            // Act
+            await _eventService.UpdateEventAsync(validId, updateRequest, TestContext.Current.CancellationToken);
+
+            // Assert
+            _cacheMock.Verify(
+                x => x.SetEventAsync(It.IsAny<Event>(), It.IsAny<int>()),
+                Times.Never);
         }
 
         [Fact]
@@ -178,6 +251,17 @@ namespace EventGathera.Tests
             Assert.False(isValid);
             Assert.Contains(validationResults, v =>
                 v.ErrorMessage == "Время начала события должно быть меньше времени окончания");
+        }
+
+        public void Dispose()
+        {
+            _dbContext?.Database.EnsureDeleted();
+            _dbContext?.Dispose();
+
+            if (_serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
 
     }

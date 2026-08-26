@@ -48,4 +48,10 @@ public interface IEventService
     /// <param name="ct"></param>
     Task DeleteEventAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>
+    /// Получить топ-10 событий с наибольшим процентом проданных мест
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns>топ-10 событий</returns>
+    Task<List<Event>> GetTopEventsAsync(CancellationToken ct = default);
 }

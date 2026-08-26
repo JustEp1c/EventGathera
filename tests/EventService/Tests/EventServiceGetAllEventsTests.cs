@@ -1,23 +1,26 @@
-﻿using EventGathera.Application.DTO.Requests;
-using EventGathera.Application.Repositories.Interfaces;
-using EventGathera.Application.Services.Implementations;
-using EventGathera.Application.Services.Interfaces;
-using EventGathera.Domain;
-using EventGathera.Infrastructure.DataAccess;
-using EventGathera.Infrastructure.Repositories.Implementations;
+﻿using EventGathera.Events.Application.Cache;
+using EventGathera.Events.Application.DTO.Requests;
+using EventGathera.Events.Application.Repositories.Interfaces;
+using EventGathera.Events.Application.Services.Implementations;
+using EventGathera.Events.Application.Services.Interfaces;
+using EventGathera.Events.Domain.Entities;
+using EventGathera.Events.Infrastructure.DataAccess;
+using EventGathera.Events.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.ComponentModel.DataAnnotations;
 
-namespace EventGathera.Tests
+namespace EventGathera.Events.Tests
 {
-    public class EventServiceGetAllEventsTests
+    public class EventServiceGetAllEventsTests : IDisposable
     {
-        private readonly AppDbContext _dbContext;
+        private readonly EventsDbContext _dbContext;
         private readonly IEventService _eventService;
         private readonly IServiceProvider _serviceProvider;
         private readonly string _dbName;
         private readonly Dictionary<string, Guid> _eventIds;
+        private readonly Mock<ICacheService> _cacheMock;
 
         public EventServiceGetAllEventsTests()
         {
@@ -32,8 +35,20 @@ namespace EventGathera.Tests
 
             var services = new ServiceCollection();
 
-            services.AddDbContext<AppDbContext>(options =>
+            services.AddDbContext<EventsDbContext>(options =>
                 options.UseInMemoryDatabase(_dbName));
+
+            _cacheMock = new Mock<ICacheService>();
+
+            _cacheMock
+                .Setup(x => x.GetEventByIdAsync(It.IsAny<Guid>()))
+                .ReturnsAsync((Event?)null);
+
+            _cacheMock
+                .Setup(x => x.SetEventAsync(It.IsAny<Event>(), It.IsAny<int>()))
+                .Returns(Task.CompletedTask);
+
+            services.AddScoped(_ => _cacheMock.Object);
 
             services.AddScoped<IEventService, EventService>();
             services.AddScoped<IEventRepository, EventRepository>();
@@ -41,7 +56,7 @@ namespace EventGathera.Tests
 
             _serviceProvider = services.BuildServiceProvider();
 
-            _dbContext = _serviceProvider.GetRequiredService<AppDbContext>();
+            _dbContext = _serviceProvider.GetRequiredService<EventsDbContext>();
             _eventService = _serviceProvider.GetRequiredService<IEventService>();
 
 

@@ -1,23 +1,20 @@
-﻿using EventGathera.Domain;
-using EventGathera.Domain.Enums;
-using EventGathera.Infrastructure.DataAccess;
-using EventGathera.Infrastructure.Repositories.Implementations;
+﻿using EventGathera.Events.Domain.Entities;
+using EventGathera.Events.Infrastructure.DataAccess;
+using EventGathera.Events.Infrastructure.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
-namespace EventGathera.IntegrationTests;
+namespace EventGathera.Events.IntegrationTests;
 
 public class EventRepositoryTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
     .WithImage("postgres:16-alpine")
-    .WithDatabase("eventapi")
+    .WithDatabase("events-db")
     .WithUsername("postgres")
     .WithPassword("postgres")
     .Build();
-
-    private readonly Guid _testUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     public async Task InitializeAsync()
     {
@@ -39,14 +36,14 @@ public class EventRepositoryTests : IAsyncLifetime
         await InitializeAsync();
     }
 
-    private AppDbContext CreateContext()
+    private EventsDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<EventsDbContext>()
             .UseNpgsql(_postgres.GetConnectionString())
             .UseSnakeCaseNamingConvention()
             .Options;
 
-        var context = new AppDbContext(options);
+        var context = new EventsDbContext(options);
         return context;
     }
 
@@ -56,18 +53,6 @@ public class EventRepositoryTests : IAsyncLifetime
         await using var context = CreateContext();
         await context.Database.EnsureDeletedAsync();
         await context.Database.MigrateAsync();
-    }
-
-    private async Task<Guid> CreateTestUserAsync(AppDbContext context)
-    {
-        var user = new User(
-            login: $"user_{Guid.NewGuid():N}".Substring(0, 30),
-            passwordHash: "hashedpassword",
-            role: Roles.User
-        );
-        context.Users.Add(user);
-        await context.SaveChangesAsync();
-        return user.Id;
     }
 
     [Fact]
@@ -242,57 +227,6 @@ public class EventRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task RemoveEventAsync_WithBookings_CascadeDeletesBookings()
-    {
-        await ResetDatabaseAsync();
-
-        // Arrange
-        await using var context = CreateContext();
-
-        var userId = await CreateTestUserAsync(context);
-
-        var eventId = Guid.NewGuid();
-        var eventEntity = new Event(
-            title: "Test Event",
-            startAt: DateTime.UtcNow.AddDays(1),
-            endAt: DateTime.UtcNow.AddDays(2),
-            totalSeats: 10,
-            description: "Test Description"
-        )
-        {
-            Id = eventId
-        };
-        context.Events.Add(eventEntity);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Создаем бронирования
-        var booking1 = new Booking(eventId, userId);
-        var booking2 = new Booking(eventId, userId);
-        context.Bookings.AddRange(booking1, booking2);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var repository = new EventRepository(context);
-
-        // Act
-        var eventToDelete = await repository.GetEventByIdAsync(eventId, TestContext.Current.CancellationToken);
-        Assert.NotNull(eventToDelete);
-
-        repository.RemoveEvent(eventToDelete, TestContext.Current.CancellationToken);
-        await repository.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Assert
-        await using var verifyContext = CreateContext();
-        var deletedEvent = await verifyContext.Events
-            .FirstOrDefaultAsync(e => e.Id == eventId, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Null(deletedEvent);
-
-        var deletedBookings = await verifyContext.Bookings
-            .Where(b => b.EventId == eventId)
-            .ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Empty(deletedBookings);
-    }
-
-    [Fact]
     public async Task GetAllEventsQuery_ReturnsAllEventsFromDatabase()
     {
         await ResetDatabaseAsync();
@@ -397,39 +331,6 @@ public class EventRepositoryTests : IAsyncLifetime
         // Assert
         Assert.Single(events);
         Assert.Equal("Tech Conference", events[0].Title);
-    }
-
-    [Fact]
-    public async Task Migrate_CreatesEventsBookingsAndForeignKey()
-    {
-        await ResetDatabaseAsync();
-
-        await using var context = CreateContext();
-
-        var tables = await context.Database.SqlQueryRaw<string>(@"
-        select table_name
-        from information_schema.tables
-        where table_schema = 'public'
-          and table_name in ('events', 'bookings')
-        order by table_name")
-            .ToListAsync(TestContext.Current.CancellationToken);
-
-        Assert.Contains("events", tables);
-        Assert.Contains("bookings", tables);
-
-        var foreignKeys = await context.Database.SqlQueryRaw<string>(@"
-        select tc.constraint_name
-        from information_schema.table_constraints tc
-        join information_schema.key_column_usage kcu
-          on tc.constraint_name = kcu.constraint_name
-         and tc.table_schema = kcu.table_schema
-        where tc.constraint_type = 'FOREIGN KEY'
-          and tc.table_schema = 'public'
-          and tc.table_name = 'bookings'
-          and kcu.column_name = 'event_id'")
-            .ToListAsync(TestContext.Current.CancellationToken);
-
-        Assert.NotEmpty(foreignKeys);
     }
 
 }
