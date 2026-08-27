@@ -3,6 +3,9 @@ using EventGathera.Users.Infrastructure.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Reflection;
 using System.Text;
 
@@ -27,6 +30,8 @@ public static class RegisterServicesExtension
         services.AddInfrastructure(configuration);
 
         services.AddPresentation(configuration);
+
+        services.AddObservabilityServices(configuration);
 
         return services;
     }
@@ -80,6 +85,29 @@ public static class RegisterServicesExtension
                     Encoding.UTF8.GetBytes(configuration["JwtSettings:Secret"]))
             };
         });
+
+        return services;
+    }
+
+    private static IServiceCollection AddObservabilityServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOpenTelemetry()
+            .ConfigureResource(r => r.AddService(serviceName: configuration["ServiceName"]!))
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddPrometheusExporter();
+            })
+            .WithTracing(tracerProviderBuilder =>
+            {
+                tracerProviderBuilder
+                   .AddAspNetCoreInstrumentation()
+                   .AddHttpClientInstrumentation()
+                   .AddEntityFrameworkCoreInstrumentation()
+                   .AddOtlpExporter(o => o.Endpoint = new Uri(configuration["Otlp:Endpoint"]!));
+            });
 
         return services;
     }
